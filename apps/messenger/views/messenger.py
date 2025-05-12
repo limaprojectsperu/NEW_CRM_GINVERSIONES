@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,14 +12,17 @@ from ..serializers import (
 
 class MessengerList(APIView):
     """
-    POST /api/messenger/all/{id}/
+    GET /api/messengers/{id}/?IDEL=&IDSubEstadoLead=
     """
     def post(self, request, id):
-        IDEL = int(request.data.get('IDEL', -1))
+        IDEL = int(request.query_params.get('IDEL', -1))
+        IDSub = int(request.query_params.get('IDSubEstadoLead', -1))
 
         qs = Messenger.objects.filter(IDRedSocial=id, Estado=1)
         if IDEL > 0:
             qs = qs.filter(IDEL=IDEL)
+        if IDSub > 0:
+            qs = qs.filter(IDSubEstadoLead=IDSub)
         qs = qs.order_by('-updated_at')
 
         serializer = MessengerSerializer(qs, many=True)
@@ -72,8 +76,10 @@ class MessengerUpdateLead(APIView):
     def post(self, request, id):
         payload = request.data
         IDEL = payload.get('IDEL', {}).get('IDEL')
+        IDSub = payload.get('IDSubEstadoLead', {}).get('IDSubEstadoLead')
         Messenger.objects.filter(IDChat=payload.get('IDChat')).update(
             IDEL=IDEL,
+            IDSubEstadoLead=IDSub if IDSub is not None else None
         )
         return Response({'message': 'ok'})
 

@@ -1,0 +1,36 @@
+# Entornos virtuales
+venv/
+.venv/
+
+# Archivos de entorno
+.env
+
+# Base de datos
+*.sqlite3
+*.db
+
+# Archivos de PyCharm
+.idea/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de distribución / compilación
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Archivos de caché
+.cache
+
+# Archivos de Django
+*.log
+local_settings.py
+db.sqlite3
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

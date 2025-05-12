@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Messenger, MessengerMensaje, MessengerConfiguracion
+from .models import Messenger, MessengerMensaje, MessengerConfiguracion, EstadoLead, SubEstadoLead
 
 class MessengerMensajeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,7 +15,7 @@ class MessengerSerializer(serializers.ModelSerializer):
         # incluir aquí todos los campos de Messenger, incluido IDSubEstadoLead
         fields = [
             'IDChat', 'IDRedSocial', 'IDSender', 'Nombre',
-            'updated_at', 'Avatar', 'IDLead', 'IDEL',
+            'updated_at', 'Avatar', 'IDEL', 'IDSubEstadoLead',
             'Estado', 'lastMessage'
         ]
 
@@ -31,4 +31,15 @@ class MessengerSerializer(serializers.ModelSerializer):
 class MessengerConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessengerConfiguracion
+        fields = '__all__'
+        
+
+class EstadoLeadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstadoLead
+        fields = '__all__'
+
+class SubEstadoLeadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubEstadoLead
         fields = '__all__'

@@ -28,8 +28,8 @@ class Messenger(models.Model):
     Nombre      = models.CharField(max_length=50, null=True, blank=True, db_column='Nombre')
     updated_at  = models.DateTimeField(null=True, blank=True, db_column='updated_at')
     Avatar      = models.CharField(max_length=100, null=True, blank=True, db_column='Avatar')
-    IDLead      = models.IntegerField(null=True, blank=True, db_column='IDLead', help_text='ID Lead')
-    IDEL        = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID lead estado')
+    IDEL        = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID estado')
+    IDSubEstadoLead = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead', help_text='ID sub estado')
     Estado      = models.IntegerField(null=True, blank=True, db_column='Estado')
 
     class Meta:
@@ -56,3 +56,29 @@ class MessengerMensaje(models.Model):
     
     def __str__(self):
         return f"Mensaje: {self.Mensaje} {self.IDChatMensaje} ({self.IDChat})"
+    
+    
+class EstadoLead(models.Model):
+    IDEL = models.AutoField(primary_key=True, db_column='IDEL')
+    Nombre = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
+    Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
+    IDEstado = models.IntegerField(null=True, blank=True, db_column='IDEstado')
+
+    class Meta:
+        db_table = 'EstadoLead'
+
+    def __str__(self):
+        return self.Nombre or f"EstadoLead {self.IDEL}"
+
+
+class SubEstadoLead(models.Model):
+    IDSubEstadoLead = models.AutoField(primary_key=True, db_column='IDSubEstadoLead')
+    IDEL = models.ForeignKey(EstadoLead, on_delete=models.CASCADE, db_column='IDEL', related_name='subestados')
+    Nombre = models.CharField(max_length=150, null=True, blank=True, db_column='Nombre')
+    IDEstado = models.IntegerField(null=True, blank=True, db_column='IDEstado')
+
+    class Meta:
+        db_table = 'SubEstadoLead'
+
+    def __str__(self):
+        return self.Nombre or f"SubEstadoLead {self.IDSubEstadoLead}"
