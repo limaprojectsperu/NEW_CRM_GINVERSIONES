@@ -15,8 +15,8 @@ class MessengerList(APIView):
     GET /api/messengers/{id}/?IDEL=&IDSubEstadoLead=
     """
     def post(self, request, id):
-        IDEL = int(request.query_params.get('IDEL', -1))
-        IDSub = int(request.query_params.get('IDSubEstadoLead', -1))
+        IDEL = int(request.data.get('IDEL', -1))
+        IDSub = int(request.data.get('IDSubEstadoLead', -1))
 
         qs = Messenger.objects.filter(IDRedSocial=id, Estado=1)
         if IDEL > 0:

@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
+from ...utils.pusher_client import pusher_client
 
 # Aseguramos formato en español para meses
 #try:
@@ -44,6 +45,7 @@ class WebhookReceive(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         self._init_chat(payload, IDRedSocial)
+        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', {})
         return Response({'status': 'ok'})
 
 
