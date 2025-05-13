@@ -2,6 +2,9 @@
 venv/
 .venv/
 
+# Archivos de entorno
+db.sqlite3
+
 # Base de datos
 *.sqlite3
 *.db
