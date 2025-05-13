@@ -7,11 +7,11 @@ from rest_framework import status
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 
 # Aseguramos formato en español para meses
-try:
-    locale.setlocale(locale.LC_TIME, 'es_PE.UTF-8')
-except locale.Error:
+#try:
+    #locale.setlocale(locale.LC_TIME, 'es_PE.UTF-8')
+#except locale.Error:
     # Dependiendo del servidor puede variar el locale; ajuste según necesite
-    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+    #locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 
 
 class WebhookVerify(APIView):
