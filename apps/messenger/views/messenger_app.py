@@ -110,24 +110,25 @@ class MessengerSendView(APIView):
                              headers=headers)
         data = resp.json()
 
-        # Guardar archivo en disco (Wasabi/S3 o MEDIA_ROOT)
+        # Crear la carpeta si no existe
         sender_id = request.data.get("IDSender")
-        folder_path = f'messenger/{sender_id}'
-        os.makedirs(os.path.join(settings.MEDIA_ROOT, folder_path), exist_ok=True)
+        media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
+        folder_path = os.path.join(media_dir, 'messenger', sender_id)
+        os.makedirs(folder_path, exist_ok=True)
         
         # Guardar archivo en disco usando solo el timestamp
         extension = os.path.splitext(upload.name)[1]
         filename = f'{int(timezone.now().timestamp())}{extension}'
-        ruta = f'{folder_path}/{filename}'
+        rel_path = f'media/messenger/{sender_id}/{filename}'
         
         # Reiniciar el puntero del archivo ya que se leyó en el multipart
         upload.seek(0)
-        default_storage.save(ruta, upload)
+        default_storage.save(rel_path, upload)
 
         return {
             'status_code': resp.status_code,
             'response': data,
-            'path': default_storage.url(ruta)
+            'path': f"{settings.MEDIA_URL.rstrip('/')}/messenger/{sender_id}/{filename}"
         }
 
 

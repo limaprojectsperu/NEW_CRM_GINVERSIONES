@@ -25,7 +25,7 @@ STATIC_URL = '/static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Configuración para archivos media
-MEDIA_URL = '/'  # Esto hace que los archivos media se sirvan desde la raíz
+MEDIA_URL = '/media/'  # Esto hace que los archivos media se sirvan desde la raíz
 MEDIA_ROOT = BASE_DIR
 
 # Quick-start development settings - unsuitable for production
