@@ -21,6 +21,12 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Configuración para archivos media
+MEDIA_URL = '/'  # Esto hace que los archivos media se sirvan desde la raíz
+MEDIA_ROOT = BASE_DIR
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -39,7 +45,6 @@ PUSHER_APP_ID      = os.getenv('PUSHER_APP_ID')
 PUSHER_KEY         = os.getenv('PUSHER_KEY')
 PUSHER_SECRET      = os.getenv('PUSHER_SECRET')
 PUSHER_CLUSTER     = os.getenv('PUSHER_CLUSTER')
-
 
 # Application definition
 

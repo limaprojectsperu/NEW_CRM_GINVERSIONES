@@ -1,6 +1,7 @@
 # Entornos virtuales
 venv/
 .venv/
+.env
 
 # Archivos de entorno
 db.sqlite3
@@ -34,3 +35,6 @@ db.sqlite3
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+
+#Archivos estaticos
+messenger

@@ -1,3 +1,4 @@
+import os
 from django.utils import timezone
 from django.conf import settings
 from rest_framework.views import APIView
@@ -81,7 +82,7 @@ class MessengerUpdateLead(APIView):
             IDEL=IDEL,
             IDSubEstadoLead=IDSub if IDSub is not None else None
         )
-        return Response({'message': 'ok'})
+        return Response({'message': 'Estado actualizado con éxito.'})
 
 
 class MessengerChatUpdate(APIView):
@@ -92,16 +93,26 @@ class MessengerChatUpdate(APIView):
         m = Messenger.objects.get(IDChat=id)
         m.Nombre = request.data.get('Nombre')
         avatar_path = None
-
+        
         fichero = request.FILES.get('file')
         if fichero:
-            # Ajusta MEDIA_ROOT según tu configuración
-            ruta = f'messenger/avatars/{int(timezone.now().timestamp())}_{fichero.name}'
-            with open(f'{settings.MEDIA_ROOT}/{ruta}', 'wb+') as destino:
+            # Create directory if it doesn't exist
+            avatar_dir = os.path.join(settings.MEDIA_ROOT, 'messenger', 'avatars')
+            os.makedirs(avatar_dir, exist_ok=True)
+            
+            # Generate file path using only timestamp
+            extension = os.path.splitext(fichero.name)[1]  # Get the file extension
+            filename = f'{int(timezone.now().timestamp())}{extension}'
+            ruta = f'messenger/avatars/{filename}'
+            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
+            
+            # Save the file
+            with open(full_path, 'wb+') as destino:
                 for chunk in fichero.chunks():
                     destino.write(chunk)
-            m.Avatar = ruta
-            avatar_path = ruta
-
+                    
+            m.Avatar = '/'+ruta
+            avatar_path = '/'+ruta
+            
         m.save()
-        return Response({'message': 'ok', 'data': avatar_path})
+        return Response({'message': 'Perfil actualizado con éxito.', 'data': avatar_path})

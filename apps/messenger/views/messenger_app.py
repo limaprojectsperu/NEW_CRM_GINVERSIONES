@@ -1,3 +1,4 @@
+import os
 import json
 import requests
 from django.utils import timezone
@@ -52,7 +53,7 @@ class MessengerSendView(APIView):
         mensaje_obj = self._save_message(request, media.get('path') if media else None)
 
         return Response({
-            'message': 'ok',
+            'message': 'Mensaje enviado con éxito.',
             'lastMessage': {
                 'IDChatMensaje': mensaje_obj.IDChatMensaje,
                 'IDChat': mensaje_obj.IDChat,
@@ -110,7 +111,17 @@ class MessengerSendView(APIView):
         data = resp.json()
 
         # Guardar archivo en disco (Wasabi/S3 o MEDIA_ROOT)
-        ruta = f'messenger/{request.data.get("IDSender")}/{int(timezone.now().timestamp())}_{upload.name}'
+        sender_id = request.data.get("IDSender")
+        folder_path = f'messenger/{sender_id}'
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, folder_path), exist_ok=True)
+        
+        # Guardar archivo en disco usando solo el timestamp
+        extension = os.path.splitext(upload.name)[1]
+        filename = f'{int(timezone.now().timestamp())}{extension}'
+        ruta = f'{folder_path}/{filename}'
+        
+        # Reiniciar el puntero del archivo ya que se leyó en el multipart
+        upload.seek(0)
         default_storage.save(ruta, upload)
 
         return {
@@ -137,7 +148,7 @@ class MessengerSendView(APIView):
                     "attachment": {
                         "type": msg_type,
                         "payload": {
-                            "attachment_id": media['response']['attachment_id']
+                            "attachment_id": media.get('response', {}).get('attachment_id')
                         }
                     }
                 }
