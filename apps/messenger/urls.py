@@ -5,7 +5,7 @@ from .views.messenger import (
     MessengerUpdateLead, MessengerChatUpdate
 )
 from .views.messenger_app import MessengerSendView
-from .views.webhooks_messenger import WebhookVerify, WebhookReceive
+from .views.webhooks_messenger import WebhookVerifyReceive
 from .views.states import EstadoLeadListView, SubEstadoLeadListView
 
 urlpatterns = [
@@ -19,8 +19,7 @@ urlpatterns = [
 
     path('messenger-app/send-message', MessengerSendView.as_view()),
 
-    path('webhooks-messenger/app/<int:IDRedSocial>', WebhookVerify.as_view()),
-    path('webhooks-messenger/app/<int:IDRedSocial>', WebhookReceive.as_view()),
+    path('webhooks-messenger/app/<int:IDRedSocial>', WebhookVerifyReceive.as_view()),
 
     path('lead-status/all', EstadoLeadListView.as_view()),
     path('lead-substatus/all', SubEstadoLeadListView.as_view()),

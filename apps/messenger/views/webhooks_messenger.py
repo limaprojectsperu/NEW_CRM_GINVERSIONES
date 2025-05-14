@@ -15,7 +15,7 @@ from ...utils.pusher_client import pusher_client
     #locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 
 
-class WebhookVerify(APIView):
+class WebhookVerifyReceive(APIView):
     """
     GET /api/webhooks-messenger/app/{IDRedSocial}/
     Verifica el token de Facebook y devuelve hub_challenge.
@@ -33,8 +33,6 @@ class WebhookVerify(APIView):
             return Response(hub_challenge, content_type='text/plain')
         return Response(status=status.HTTP_403_FORBIDDEN)
 
-
-class WebhookReceive(APIView):
     """
     POST /api/webhooks-messenger/app/{IDRedSocial}/
     Recibe la carga útil JSON de Facebook en webhook.
