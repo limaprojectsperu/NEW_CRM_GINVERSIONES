@@ -22,18 +22,27 @@ class WebhookVerifyReceive(APIView):
     Verifica el token de Facebook y devuelve hub_challenge.
     """
     def get(self, request, IDRedSocial):
-        # Usar los nombres correctos de los parámetros
+        # Obtener todos los parámetros según la documentación
+        hub_mode = request.GET.get('hub.mode', '')
         hub_challenge = request.GET.get('hub.challenge', '')
         hub_verify_token = request.GET.get('hub.verify_token', '')
         
+        # Obtener la configuración del token
         setting = MessengerConfiguracion.objects.filter(
             IDRedSocial=IDRedSocial
         ).first()
         
-        if setting and setting.TokenHook == hub_verify_token:
-            # Retornar SOLO el hub_challenge sin formateo adicional
-            return HttpResponse(hub_challenge)
+        # Verificar modo y token como en la documentación
+        if hub_mode and hub_verify_token:
+            if hub_mode == 'subscribe' and setting and setting.TokenHook == hub_verify_token:
+                # Responder con el challenge tal como se recibió
+                print("WEBHOOK_VERIFIED")  # Log para depuración
+                return HttpResponse(hub_challenge)
+            else:
+                # Responder con 403 Forbidden si los tokens no coinciden
+                return HttpResponseForbidden()
         
+        # Si no hay modo o token, responder con 403
         return HttpResponseForbidden()
 
     """
