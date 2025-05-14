@@ -39,6 +39,10 @@ DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://api2.grupoimagensac.com.pe:4430',
+    'http://api2.grupoimagensac.com.pe:4430',
+]
 
 # PUSHER
 PUSHER_APP_ID      = os.getenv('PUSHER_APP_ID')
