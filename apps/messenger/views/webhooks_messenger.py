@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.http import HttpResponse, HttpResponseForbidden
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from ...utils.pusher_client import pusher_client
 
@@ -30,8 +31,8 @@ class WebhookVerifyReceive(APIView):
 
         if setting and setting.TokenHook == hub_verify_token:
             # Respondemos sólo con el challenge en texto plano
-            return Response(hub_challenge, content_type='text/plain')
-        return Response(status=status.HTTP_403_FORBIDDEN)
+            return HttpResponse(hub_challenge, content_type='text/plain')
+        return HttpResponseForbidden()
 
     """
     POST /api/webhooks-messenger/app/{IDRedSocial}/
