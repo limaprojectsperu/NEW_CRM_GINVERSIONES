@@ -26,11 +26,17 @@ class WebhookVerifyReceive(APIView):
         hub_mode = request.GET.get('hub.mode', '')
         hub_challenge = request.GET.get('hub.challenge', '')
         hub_verify_token = request.GET.get('hub.verify_token', '')
+
+        print("hub_mode: ", hub_mode)
+        print("hub_challenge: ", hub_challenge)
+        print("hub_verify_token: ", hub_verify_token)
         
         # Obtener la configuración del token
         setting = MessengerConfiguracion.objects.filter(
             IDRedSocial=IDRedSocial
         ).first()
+
+        print('setting:', setting.TokenHook)
         
         # Verificar modo y token como en la documentación
         if hub_mode and hub_verify_token:
