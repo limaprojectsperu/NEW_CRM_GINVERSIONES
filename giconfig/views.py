@@ -38,7 +38,7 @@ def home_view(request):
     </head>
     <body>
         <div class="container">
-            <h1>Grupo Imagen SAC</h1>
+            <h1>Grupo Imagen SAC 2</h1>
             <p>Bienvenido a nuestro sitio web</p>
         </div>
     </body>
