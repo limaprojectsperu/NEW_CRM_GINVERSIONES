@@ -40,8 +40,8 @@ DEBUG = os.getenv('DEBUG')
 ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://api2.grupoimagensac.com.pe:4430',
-    'http://api2.grupoimagensac.com.pe:4430',
+    'https://api2.grupoimagensac.com.pe',
+    'http://api2.grupoimagensac.com.pe',
 ]
 
 # PUSHER
