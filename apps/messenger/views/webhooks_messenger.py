@@ -26,23 +26,16 @@ class WebhookVerifyReceive(APIView):
         hub_mode = request.GET.get('hub.mode', '')
         hub_challenge = request.GET.get('hub.challenge', '')
         hub_verify_token = request.GET.get('hub.verify_token', '')
-
-        print("hub_mode: ", hub_mode)
-        print("hub_challenge: ", hub_challenge)
-        print("hub_verify_token: ", hub_verify_token)
         
         # Obtener la configuración del token
         setting = MessengerConfiguracion.objects.filter(
             IDRedSocial=IDRedSocial
         ).first()
-
-        print('setting:', setting.TokenHook)
         
         # Verificar modo y token como en la documentación
         if hub_mode and hub_verify_token:
             if hub_mode == 'subscribe' and setting and setting.TokenHook == hub_verify_token:
                 # Responder con el challenge tal como se recibió
-                print("WEBHOOK_VERIFIED")  # Log para depuración
                 return HttpResponse(hub_challenge)
             else:
                 # Responder con 403 Forbidden si los tokens no coinciden
@@ -69,13 +62,17 @@ class WebhookVerifyReceive(APIView):
         """
         Reemplaza la llamada curl a /{sender_id}?fields=name
         """
-        url = f"https://graph.facebook.com/{sender_id}"
+        url = f"https://graph.facebook.com/v18.0/{sender_id}"
         resp = requests.get(url, params={
             'fields': 'name',
             'access_token': token
-        })
-        data = resp.json()
-        return data.get('name', 'Usuario desconocido')
+        }, timeout=5)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('name', 'Usuario desconocido')
+        else:
+            return 'Usuario desconocido'
 
 
     def _init_chat(self, payload, IDRedSocial):
