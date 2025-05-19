@@ -54,7 +54,7 @@ class WebhookVerifyReceive(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         self._init_chat(payload, IDRedSocial)
-        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', {})
+        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
 
 
@@ -62,7 +62,7 @@ class WebhookVerifyReceive(APIView):
         """
         Reemplaza la llamada curl a /{sender_id}?fields=name
         """
-        url = f"https://graph.facebook.com/v18.0/{sender_id}"
+        url = f"https://graph.facebook.com/{sender_id}"
         resp = requests.get(url, params={
             'fields': 'name',
             'access_token': token
