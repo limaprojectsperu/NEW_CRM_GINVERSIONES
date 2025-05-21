@@ -16,7 +16,7 @@ class MessengerSerializer(serializers.ModelSerializer):
         fields = [
             'IDChat', 'IDRedSocial', 'IDSender', 'Nombre',
             'updated_at', 'Avatar', 'IDEL', 'IDSubEstadoLead',
-            'Estado', 'lastMessage'
+            'Estado', 'lastMessage', 'nuevos_mensajes'
         ]
 
     def get_lastMessage(self, obj):
@@ -40,6 +40,13 @@ class EstadoLeadSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class SubEstadoLeadSerializer(serializers.ModelSerializer):
+    estado_lead = EstadoLeadSerializer(source='IDEL', read_only=True) 
+    id_estado_lead = serializers.PrimaryKeyRelatedField(
+        queryset=EstadoLead.objects.all(),
+        source='IDEL',
+        write_only=True
+    )
+
     class Meta:
         model = SubEstadoLead
         fields = '__all__'

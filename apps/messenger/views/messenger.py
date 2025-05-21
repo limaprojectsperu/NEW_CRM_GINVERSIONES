@@ -39,6 +39,7 @@ class MessengerMessages(APIView):
         serializer = MessengerMensajeSerializer(msgs, many=True)
         # Marcar como vistos (2→3)
         MessengerMensaje.objects.filter(IDChat=id, Estado=2).update(Estado=3)
+        Messenger.objects.filter(IDChat=id).update(nuevos_mensajes=0)
         return Response({'data': serializer.data})
 
 

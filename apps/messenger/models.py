@@ -10,8 +10,7 @@ class MessengerConfiguracion(models.Model):
     TokenHook    = models.CharField(max_length=50, null=True, blank=True, db_column='TokenHook')
     urlHook      = models.CharField(max_length=100, null=True, blank=True, db_column='urlHook')
     urlApi       = models.CharField(max_length=100, null=True, blank=True, db_column='urlApi', help_text='urlApi')
-    Template     = models.CharField(max_length=50, null=True, blank=True, db_column='Template')
-    Language     = models.CharField(max_length=40, null=True, blank=True, db_column='Language')
+    logo         = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
     Estado       = models.IntegerField(null=True, blank=True, db_column='Estado', help_text='Estado')
 
     class Meta:
@@ -30,6 +29,7 @@ class Messenger(models.Model):
     Avatar      = models.CharField(max_length=100, null=True, blank=True, db_column='Avatar')
     IDEL        = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID estado')
     IDSubEstadoLead = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead', help_text='ID sub estado')
+    nuevos_mensajes = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     Estado      = models.IntegerField(null=True, blank=True, db_column='Estado')
 
     class Meta:
@@ -75,6 +75,7 @@ class SubEstadoLead(models.Model):
     IDSubEstadoLead = models.AutoField(primary_key=True, db_column='IDSubEstadoLead')
     IDEL = models.ForeignKey(EstadoLead, on_delete=models.CASCADE, db_column='IDEL', related_name='subestados')
     Nombre = models.CharField(max_length=150, null=True, blank=True, db_column='Nombre')
+    Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
     IDEstado = models.IntegerField(null=True, blank=True, db_column='IDEstado')
 
     class Meta:

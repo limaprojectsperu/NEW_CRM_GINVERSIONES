@@ -99,6 +99,7 @@ class WebhookVerifyReceive(APIView):
 
         if chat:
             chat.Estado = 1
+            chat.nuevos_mensajes = chat.nuevos_mensajes+1
             chat.save()
             user_name = chat.Nombre
         else:
@@ -107,6 +108,7 @@ class WebhookVerifyReceive(APIView):
             chat = Messenger.objects.create(
                 IDRedSocial=IDRedSocial,
                 IDSender=sender_id,
+                IDEL=1,
                 Nombre=user_name,
                 Estado=1
             )

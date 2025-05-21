@@ -37,4 +37,7 @@ db.sqlite3
 Thumbs.db
 
 #Archivos estaticos
-media
+media/*
+!media/logo/
+
+
