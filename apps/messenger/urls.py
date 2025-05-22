@@ -7,6 +7,7 @@ from .views.messenger import (
 from .views.messenger_app import MessengerSendView
 from .views.webhooks_messenger import WebhookVerifyReceive
 from .views.states import EstadoLeadViewSet, SubEstadoLeadViewSet
+from .views.messenger_template import MessengerPlantillaViewSet
 
 urlpatterns = [
     # messenger api
@@ -45,4 +46,18 @@ urlpatterns = [
         'delete': 'destroy'
         }), name='subestado-lead-detail'),
     path('lead-subestado/estado/<int:pk>', SubEstadoLeadViewSet.as_view({ 'put': 'updateState' })),
+
+    # APIs Messenger plantilla
+    path('messenger-plantillas-all', MessengerPlantillaViewSet.as_view({'get': 'listAll'}), name='messenger-plantillas-all'),
+    path('messenger-plantilla', MessengerPlantillaViewSet.as_view({
+        'post': 'create'
+    }), name='messenger-plantilla-list'),
+    path('messenger-plantilla/<int:pk>', MessengerPlantillaViewSet.as_view({
+        'get': 'list',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='messenger-plantilla-detail'),
+    path('messenger-plantilla/estado/<int:pk>', MessengerPlantillaViewSet.as_view({
+        'put': 'updateState'
+    }), name='messenger-plantilla-update-state'),
 ]

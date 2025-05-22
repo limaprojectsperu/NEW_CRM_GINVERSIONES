@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from ..models import EstadoLead, SubEstadoLead
 from ..serializers import (
     EstadoLeadSerializer,
+    SubEstadoLeadSingleSerializer,
     SubEstadoLeadSerializer,
 )
 
@@ -71,7 +72,7 @@ class SubEstadoLeadViewSet(viewsets.ViewSet):
     """GET /api/subestado-lead/ devuelve solo where IDEstado = 1"""
     def list(self, request):
         subleads = SubEstadoLead.objects.filter(IDEstado=1).order_by('IDSubEstadoLead')
-        serializer = SubEstadoLeadSerializer(subleads, many=True)
+        serializer = SubEstadoLeadSingleSerializer(subleads, many=True)
         return Response({'data': serializer.data})
 
     def create(self, request):

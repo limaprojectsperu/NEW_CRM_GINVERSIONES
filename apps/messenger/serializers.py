@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Messenger, MessengerMensaje, MessengerConfiguracion, EstadoLead, SubEstadoLead
+from .models import Messenger, MessengerMensaje, MessengerConfiguracion, MessengerPlantilla, EstadoLead, SubEstadoLead
+from apps.users.models import Marca
+from apps.users.serializers import MarcaSerializer
 
 class MessengerMensajeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -32,11 +34,33 @@ class MessengerConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessengerConfiguracion
         fields = '__all__'
-        
+
+class MessengerPlantillaSingleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessengerPlantilla
+        fields = '__all__'
+
+class MessengerPlantillaSerializer(serializers.ModelSerializer):
+    marca = MarcaSerializer(source='marca_id', read_only=True)
+    id_marca = serializers.PrimaryKeyRelatedField(
+        queryset=Marca.objects.all(),
+        source='marca_id',
+        write_only=True
+    )
+    
+    class Meta:
+        model = MessengerPlantilla
+        fields = '__all__'
+
 
 class EstadoLeadSerializer(serializers.ModelSerializer):
     class Meta:
         model = EstadoLead
+        fields = '__all__'
+
+class SubEstadoLeadSingleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubEstadoLead
         fields = '__all__'
 
 class SubEstadoLeadSerializer(serializers.ModelSerializer):
