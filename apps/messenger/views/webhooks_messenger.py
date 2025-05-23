@@ -63,15 +63,20 @@ class WebhookVerifyReceive(APIView):
         Reemplaza la llamada curl a /{sender_id}?fields=name
         """
         url = f"https://graph.facebook.com/{sender_id}"
-        resp = requests.get(url, params={
-            'fields': 'name',
-            'access_token': token
-        }, timeout=5)
-        
-        if resp.status_code == 200:
-            data = resp.json()
-            return data.get('name', 'Usuario desconocido')
-        else:
+        try:
+            resp = requests.get(url, params={
+                'fields': 'name',
+                'access_token': token
+            }, timeout=5)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                # Retorna el nombre si existe, sino 'Usuario desconocido'
+                return data.get('name', 'Usuario desconocido')
+            else:
+                return 'Usuario desconocido'
+        except (requests.RequestException, ValueError):
+            # Manejo de errores de conexión o JSON inválido
             return 'Usuario desconocido'
 
 
@@ -129,7 +134,13 @@ class WebhookVerifyReceive(APIView):
         )
 
         # Actualizar chat
-        chat.Nombre     = user_name if user_name != 'Usuario desconocido' else f'{user_name} {chat.IDChat}'
+        user_name = user_name or 'Usuario desconocido'  # Esto cubre None y string vacío
+        if user_name == 'Usuario desconocido':
+            nombreChat = f'Usuario desconocido {chat.IDChat}'
+        else:
+            nombreChat = user_name
+
+        chat.Nombre  = nombreChat
         chat.updated_at = now
         chat.save()
 
