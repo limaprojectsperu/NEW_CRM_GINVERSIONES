@@ -67,11 +67,12 @@ class MessengerPlantilla(models.Model):
     extension = models.CharField(max_length=200, null=True, blank=True) 
     estado = models.BooleanField(default=True) 
     marca_id = models.ForeignKey(Marca, on_delete=models.PROTECT, db_column='marca_id', related_name='plantillas')
+    tipo = models.IntegerField(default=0, blank=True, db_column='tipo', help_text='0: default, 1: entrada, 2: salida')
 
     class Meta:
         db_table = 'messenger_plantillas'
-        verbose_name = 'Plantilla de Messenger' 
-        verbose_name_plural = 'Plantillas de Messenger'
+        verbose_name = 'Respuesta automática' 
+        verbose_name_plural = 'Respuestas automáticas'
 
     def __str__(self):
         return f"Plantilla {self.id}: {self.mensaje}" if self.mensaje else f"Plantilla {self.id}: archivo"

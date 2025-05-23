@@ -42,11 +42,6 @@ class MessengerPlantillaSingleSerializer(serializers.ModelSerializer):
 
 class MessengerPlantillaSerializer(serializers.ModelSerializer):
     marca = MarcaSerializer(source='marca_id', read_only=True)
-    id_marca = serializers.PrimaryKeyRelatedField(
-        queryset=Marca.objects.all(),
-        source='marca_id',
-        write_only=True
-    )
     
     class Meta:
         model = MessengerPlantilla

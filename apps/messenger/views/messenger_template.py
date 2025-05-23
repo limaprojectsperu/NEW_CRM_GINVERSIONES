@@ -46,12 +46,11 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
             
             # Crear la URL correcta con MEDIA_URL
             data['url'] = f"{settings.MEDIA_URL.rstrip('/')}/messenger/plantillas/{filename}"
-            data['extension'] = extension
         
         serializer = MessengerPlantillaSerializer(data=data)
         if serializer.is_valid():
             serializer.save(estado=True)  # Por defecto activo
-            return Response({'data': serializer.data, 'message': 'Plantilla registrada con éxito.'})
+            return Response({'data': serializer.data, 'message': 'Respuesta registrada con éxito.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, pk=None):
@@ -94,12 +93,11 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
             
             # Crear la URL correcta con MEDIA_URL
             data['url'] = f"{settings.MEDIA_URL.rstrip('/')}/messenger/plantillas/{filename}"
-            data['extension'] = extension
         
         serializer = MessengerPlantillaSerializer(plantilla, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'data': serializer.data, 'message': 'Plantilla actualizada con éxito.'})
+            return Response({'data': serializer.data, 'message': 'Respuesta actualizada con éxito.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def updateState(self, request, pk=None):
@@ -114,7 +112,7 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
         plantilla.estado = request.data.get('estado', plantilla.estado)
         plantilla.save()
         serializer = MessengerPlantillaSerializer(plantilla)
-        return Response({"data": serializer.data, "message": "Estado de plantilla actualizado con éxito."})
+        return Response({"data": serializer.data, "message": "Estado de respuesta actualizado con éxito."})
     
     def destroy(self, request, pk=None):
         """
@@ -128,4 +126,4 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
         plantilla.estado = False  # Marcar como eliminado
         plantilla.save()
         serializer = MessengerPlantillaSerializer(plantilla)
-        return Response({"data": serializer.data, "message": "Plantilla desactivada exitosamente."})
+        return Response({"data": serializer.data, "message": "Respuesta desactivada exitosamente."})

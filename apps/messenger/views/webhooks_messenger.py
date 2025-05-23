@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse, HttpResponseForbidden
-from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
+from ..models import Messenger, MessengerMensaje, MessengerConfiguracion, MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 
 # Aseguramos formato en español para meses
@@ -138,3 +138,8 @@ class WebhookVerifyReceive(APIView):
             IDChat=chat.IDChat,
             Estado=1
         ).update(Estado=3)
+
+        #respuesta automatica
+        #template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id).first()
+        #if template:
+
