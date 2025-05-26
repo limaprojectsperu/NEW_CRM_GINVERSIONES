@@ -1,5 +1,6 @@
 import locale
 import requests
+from django.conf import settings
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -90,6 +91,7 @@ class WebhookVerifyReceive(APIView):
         sender_admin = msg['recipient']['id']
         sender_id    = msg['sender']['id']
         text         = msg.get('message', {}).get('text', '')
+        newChat = False
 
         # Cargamos configuración
         setting = MessengerConfiguracion.objects.filter(
@@ -117,6 +119,7 @@ class WebhookVerifyReceive(APIView):
                 Nombre=user_name,
                 Estado=1
             )
+            newChat = True
 
         # Fechas en español
         now = timezone.localtime()
@@ -151,6 +154,32 @@ class WebhookVerifyReceive(APIView):
         ).update(Estado=3)
 
         #respuesta automatica
-        #template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id).first()
-        #if template:
+        if newChat:
+            template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id, estado=True, tipo=1).first()
+    
+            if template:
+                self.send_message(setting, chat, template)
 
+    def send_message(self, setting, chat, template):
+        if settings.DEBUG:
+            url = settings.BASE_URL_LOCAL + "api/messenger-app/send-message"
+        else:
+            url = settings.BASE_URL_PRODUCTION + "api/messenger-app/send-message"
+
+        now = timezone.localtime()
+        Fecha = now.strftime('%d %B %Y')  # ej. '09 mayo 2025'
+        Hora  = now.strftime('%H:%M')
+
+        # 1. Prepara los datos que necesitas enviar
+        message_data = {
+            "IDRedSocial": setting.IDRedSocial,
+            "tokenHook": setting.TokenHook,  
+            "IdRecipient": chat.IDSender,
+            "IDChat": chat.IDChat,
+            "IDSender": setting.IDSender,
+            "Mensaje": template.mensaje,
+            "Fecha": Fecha,
+            "Hora": Hora,
+        }
+
+        requests.post(url, json=message_data, timeout=10)

@@ -15,7 +15,7 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
     
     """GET /api/messenger-plantilla/ devuelve solo where estado = True"""
     def list(self, request, pk):
-        plantillas = MessengerPlantilla.objects.filter(estado=True, marca_id=pk).order_by('id')
+        plantillas = MessengerPlantilla.objects.filter(marca_id=pk, estado=True).order_by('id')
         serializer = MessengerPlantillaSingleSerializer(plantillas, many=True)
         return Response({'data': serializer.data})
     

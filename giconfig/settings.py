@@ -28,6 +28,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'  # Esto hace que los archivos media se sirvan desde la raíz
 MEDIA_ROOT = BASE_DIR
 
+BASE_URL_LOCAL = 'http://127.0.0.1:3000/'
+BASE_URL_PRODUCTION = 'https://api2.grupoimagensac.com.pe/'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -42,6 +45,11 @@ ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     'https://api2.grupoimagensac.com.pe',
     'http://api2.grupoimagensac.com.pe',
+]
+
+# Crontab 
+CRONJOBS = [
+    ('*/1 * * * *', 'apps.management.commands.messenger_scheduled_task'),  # Cada 1 minuto
 ]
 
 # PUSHER
@@ -61,6 +69,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_crontab',
     'apps.users',
     'apps.messenger',
 ]
