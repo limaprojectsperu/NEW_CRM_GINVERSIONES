@@ -47,14 +47,6 @@ CSRF_TRUSTED_ORIGINS = [
     'http://api2.grupoimagensac.com.pe',
 ]
 
-# Crontab 
-CRONJOBS = [
-    (
-        "*/1 * * * *", 
-        "apps.commands.messenger_scheduled_task >> /code/cron_messenger.log 2>&1"
-    ),  # Cada 1 minuto
-]
-
 # PUSHER
 PUSHER_APP_ID      = os.getenv('PUSHER_APP_ID')
 PUSHER_KEY         = os.getenv('PUSHER_KEY')
@@ -87,6 +79,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
+]
+
+# Crontab 
+CRONJOBS = [
+    (
+        "*/1 * * * *", 
+        "apps.commands.messenger_scheduled_task >> /code/cron_messenger.log 2>&1"
+    ),  # Cada 1 minuto
 ]
 
 # Orígenes permitidos para las peticiones cross-site:
