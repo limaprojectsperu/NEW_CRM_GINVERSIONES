@@ -85,8 +85,9 @@ MIDDLEWARE = [
 CRONJOBS = [
     (
         "*/1 * * * *", 
-        "apps.commands.messenger_scheduled_task >> /code/cron_messenger.log 2>&1"
-    ),  # Cada 1 minuto
+        "apps.management.commands.messenger_scheduled_task",
+        ">> /code/cron_messenger.log 2>&1"
+    ), # cada minuto
 ]
 
 # Orígenes permitidos para las peticiones cross-site:
