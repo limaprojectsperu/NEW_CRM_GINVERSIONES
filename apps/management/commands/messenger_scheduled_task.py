@@ -4,3 +4,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Tu lógica aquí
         print("Ejecutando tarea programada...")
+
+        return "Completado"

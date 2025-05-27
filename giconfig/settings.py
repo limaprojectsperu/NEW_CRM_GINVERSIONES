@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_crontab',
+    'apps',
     'apps.users',
     'apps.messenger',
 ]
