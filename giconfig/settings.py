@@ -49,7 +49,10 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Crontab 
 CRONJOBS = [
-    ('*/1 * * * *', 'apps.management.commands.messenger_scheduled_task'),  # Cada 1 minuto
+    (
+        "*/1 * * * *", 
+        "apps.commands.messenger_scheduled_task >> /code/cron_messenger.log 2>&1"
+    ),  # Cada 1 minuto
 ]
 
 # PUSHER

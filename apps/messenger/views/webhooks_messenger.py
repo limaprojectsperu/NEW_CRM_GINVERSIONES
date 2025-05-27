@@ -117,6 +117,7 @@ class WebhookVerifyReceive(APIView):
                 IDSender=sender_id,
                 IDEL=1,
                 Nombre=user_name,
+                nuevos_mensajes:1,
                 Estado=1
             )
             newChat = True
