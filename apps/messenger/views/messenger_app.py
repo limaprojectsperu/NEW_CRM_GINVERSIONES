@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
+from apps.utils.datetime_func  import get_naive_peru_time
 
 class MessengerSendView(APIView):
     """
@@ -281,8 +282,9 @@ class MessengerSendView(APIView):
             Extencion = request.data.get('Extencion'),
             Estado    = 1
         )
+
         Messenger.objects.filter(IDChat=request.data.get('IDChat')).update(
-            updated_at=timezone.now()
+            updated_at=get_naive_peru_time()
         )
         return msg
 

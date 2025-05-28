@@ -31,6 +31,10 @@ MEDIA_ROOT = BASE_DIR
 BASE_URL_LOCAL = 'http://127.0.0.1:3000/'
 BASE_URL_PRODUCTION = 'https://api2.grupoimagensac.com.pe/'
 
+# Zona horaria
+TIME_ZONE = 'America/Lima' 
+USE_TZ = True  
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 

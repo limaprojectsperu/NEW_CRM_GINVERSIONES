@@ -1,4 +1,3 @@
-import locale
 import requests
 from django.conf import settings
 from django.utils import timezone
@@ -8,14 +7,9 @@ from rest_framework import status
 from django.http import HttpResponse, HttpResponseForbidden
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion, MessengerPlantilla
 from ...utils.pusher_client import pusher_client
-
-# Aseguramos formato en español para meses
-#try:
-    #locale.setlocale(locale.LC_TIME, 'es_PE.UTF-8')
-#except locale.Error:
-    # Dependiendo del servidor puede variar el locale; ajuste según necesite
-    #locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-
+from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
+from apps.utils.datetime_func  import get_naive_peru_time, get_date_tiem
+from apps.utils.tokens_phone import get_user_tokens_by_permissions
 
 class WebhookVerifyReceive(APIView):
     """
@@ -53,11 +47,10 @@ class WebhookVerifyReceive(APIView):
         payload = request.data
         if not payload:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
+ 
         self._init_chat(payload, IDRedSocial)
         pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
-
 
     def _get_user_name(self, sender_id, token):
         """
@@ -122,10 +115,19 @@ class WebhookVerifyReceive(APIView):
             )
             newChat = True
 
+            #push notification
+            firebase_service = FirebaseServiceV1()
+            tokens = get_user_tokens_by_permissions("messenger.index")
+            if len(tokens) > 0:
+                firebase_service.send_to_multiple_devices(
+                    tokens=tokens,
+                    title="Nuevo mensaje en Messenger",
+                    body=text,
+                    data={'type': 'router', 'route_name': 'MessengerPage'}
+                )
+        
         # Fechas en español
-        now = timezone.localtime()
-        Fecha = now.strftime('%d %B %Y')  # ej. '09 mayo 2025'
-        Hora  = now.strftime('%H:%M')
+        Fecha, Hora = get_date_tiem()
 
         # Guardar el nuevo mensaje (Estado 2 = recibido)
         new_msg = MessengerMensaje.objects.create(
@@ -145,7 +147,7 @@ class WebhookVerifyReceive(APIView):
             nombreChat = user_name
 
         chat.Nombre  = nombreChat
-        chat.updated_at = now
+        chat.updated_at = get_naive_peru_time()
         chat.save()
 
         # Marcar como vistos todos los anteriores con Estado=1
@@ -167,9 +169,7 @@ class WebhookVerifyReceive(APIView):
         else:
             url = settings.BASE_URL_PRODUCTION + "api/messenger-app/send-message"
 
-        now = timezone.localtime()
-        Fecha = now.strftime('%d %B %Y')  # ej. '09 mayo 2025'
-        Hora  = now.strftime('%H:%M')
+        Fecha, Hora = get_date_tiem()
 
         # 1. Prepara los datos que necesitas enviar
         message_data = {

@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from apps.utils.datetime_func  import get_naive_peru_time
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from ..serializers import (
     MessengerSerializer,
@@ -13,17 +14,26 @@ from ..serializers import (
 
 class MessengerList(APIView):
     """
-    GET /api/messengers/{id}/?IDEL=&IDSubEstadoLead=
+    POST /api/messengers/{id}/?IDEL=&IDSubEstadoLead=
     """
     def post(self, request, id):
         IDEL = int(request.data.get('IDEL', -1))
         IDSub = int(request.data.get('IDSubEstadoLead', -1))
+        search_text = request.data.get('searchMessage', '').strip()
 
         qs = Messenger.objects.filter(IDRedSocial=id, Estado=1)
         if IDEL > 0:
             qs = qs.filter(IDEL=IDEL)
         if IDSub > 0:
             qs = qs.filter(IDSubEstadoLead=IDSub)
+
+        if search_text:
+            matching_messages = MessengerMensaje.objects.filter(
+                Mensaje__icontains=search_text
+            ).values_list('IDChat', flat=True).distinct()
+            
+            qs = qs.filter(IDChat__in=matching_messages)
+
         qs = qs.order_by('-updated_at')
 
         serializer = MessengerSerializer(qs, many=True)
@@ -57,7 +67,7 @@ class MessengerUpdateDate(APIView):
     POST /api/messenger/update-date/{id}/
     """
     def post(self, request, id):
-        Messenger.objects.filter(IDChat=id).update(updated_at=timezone.now())
+        Messenger.objects.filter(IDChat=id).update(updated_at=get_naive_peru_time())
         return Response({'message': 'ok'})
 
 
