@@ -19,7 +19,7 @@ class FirebaseServiceV1:
         """
         try:
             # Ruta al archivo de credenciales (ajustar según tu estructura de Django)
-            credentials_path = os.path.join(settings.BASE_DIR, 'firebase-credentials.json')
+            credentials_path = os.path.join(settings.MEDIA_ROOT, 'media', 'firebase-credentials.json')
             
             # Crear credenciales desde el archivo JSON
             credentials = service_account.Credentials.from_service_account_file(
