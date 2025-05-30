@@ -1,5 +1,4 @@
 from django.urls import path
-from .views.brands import BrandViewSet
 from .views.users import UsersViewSet 
 from .views.user_tokens import UserTokensViewSet 
 from .views.permissions import PermissionsViewSet 
@@ -9,9 +8,6 @@ from .views.import_data import ImportData
 
 urlpatterns = [
     path('import-data', ImportData.as_view()),
-
-    # messenger api
-    path('marcas', BrandViewSet.as_view({ 'get': 'list' })),
 
      # URLs para Users
     path('users', UsersViewSet.as_view({

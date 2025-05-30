@@ -5,11 +5,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse, HttpResponseForbidden
-from ..models import Messenger, MessengerMensaje, MessengerConfiguracion, MessengerPlantilla
+from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
+from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.datetime_func  import get_naive_peru_time, get_date_tiem
 from apps.utils.tokens_phone import get_user_tokens_by_permissions
+from apps.openai.openai_chatbot import ChatbotService
+
+chatbot = ChatbotService()
 
 class WebhookVerifyReceive(APIView):
     """

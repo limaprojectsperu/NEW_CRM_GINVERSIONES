@@ -88,10 +88,11 @@ class MessengerUpdateLead(APIView):
     def post(self, request, id):
         payload = request.data
         IDEL = payload.get('IDEL', {}).get('IDEL')
-        IDSub = payload.get('IDSubEstadoLead', {}).get('IDSubEstadoLead')
+        IDSub = payload.get('IDSubEstadoLead', {}).get('IDSubEstadoLead') if payload.get('IDSubEstadoLead') else None
+        
         Messenger.objects.filter(IDChat=payload.get('IDChat')).update(
             IDEL=IDEL,
-            IDSubEstadoLead=IDSub if IDSub is not None else None
+            IDSubEstadoLead=IDSub
         )
         return Response({'message': 'Estado actualizado con éxito.'})
 

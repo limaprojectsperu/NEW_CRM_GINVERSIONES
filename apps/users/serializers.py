@@ -1,10 +1,5 @@
 from rest_framework import serializers
-from .models import Marca, Users, UserTokens, Permissions, Perfiles, PerfilPermissions
-
-class MarcaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Marca
-        fields = '__all__'
+from .models import Users, UserTokens, Permissions, Perfiles, PerfilPermissions
 
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
