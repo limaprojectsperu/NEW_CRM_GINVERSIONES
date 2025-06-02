@@ -16,11 +16,31 @@ class PermissionsViewSet(viewsets.ViewSet):
         return Response({'data': serializer.data})
 
     def create(self, request):
-        """POST /api/permissions/ - Crear nuevo permiso"""
-        serializer = PermissionsSerializer(data=request.data)
+        """POST /api/permissions/ - Crear o actualizar permiso según se envíe id"""
+        data = request.data.copy()
+        permiso_id = data.get('id', None)
+
+        if permiso_id:
+            defaults = {
+                'name': data.get('name'),
+                'description': data.get('description'),
+                'state': data.get('state', 1),
+            }
+            permiso_obj, created = Permissions.objects.update_or_create(
+                id=permiso_id,
+                defaults=defaults
+            )
+            serializer = PermissionsSerializer(permiso_obj)
+            mensaje = 'Permiso registrado con éxito.' if created else 'Permiso actualizado con éxito.'
+            return Response({'data': serializer.data, 'message': mensaje})
+
+        serializer = PermissionsSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(state=1)  # Por defecto activo
-            return Response({'data': serializer.data, 'message': 'Permiso registrado con éxito.'})
+            nuevo_permiso = serializer.save(state=1)
+            return Response({
+                'data': PermissionsSerializer(nuevo_permiso).data,
+                'message': 'Permiso registrado con éxito.'
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, pk=None):

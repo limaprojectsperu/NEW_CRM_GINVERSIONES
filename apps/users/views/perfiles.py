@@ -16,11 +16,36 @@ class PerfilesViewSet(viewsets.ViewSet):
         return Response({'data': serializer.data})
 
     def create(self, request):
-        """POST /api/perfiles/ - Crear nuevo perfil"""
-        serializer = PerfilesSerializer(data=request.data)
+        """POST /api/perfiles/ - Crear o actualizar perfil según se envíe co_perfil"""
+        data = request.data.copy()
+        co_perfil = data.get('co_perfil', None)
+
+        if co_perfil:
+            # Si se envía co_perfil, intentamos actualizar; si no existe, lo creamos
+            defaults = {
+                'no_perfil': data.get('no_perfil'),
+                'nc_perfil': data.get('nc_perfil'),
+                'in_estado': data.get('in_estado', 1),  # Por defecto activo si no se envía
+            }
+            perfil_obj, created = Perfiles.objects.update_or_create(
+                co_perfil=co_perfil,
+                defaults=defaults
+            )
+            serializer = PerfilesSerializer(perfil_obj)
+            if created:
+                mensaje = 'Perfil registrado con éxito.'
+            else:
+                mensaje = 'Perfil actualizado con éxito.'
+            return Response({'data': serializer.data, 'message': mensaje})
+
+        # Si no se envía co_perfil, creamos uno nuevo
+        serializer = PerfilesSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(in_estado=1)  # Por defecto activo
-            return Response({'data': serializer.data, 'message': 'Perfil registrado con éxito.'})
+            nuevo_perfil = serializer.save(in_estado=1)  # Valor por defecto activo
+            return Response({
+                'data': PerfilesSerializer(nuevo_perfil).data,
+                'message': 'Perfil registrado con éxito.'
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, pk=None):

@@ -16,11 +16,32 @@ class PerfilPermissionsViewSet(viewsets.ViewSet):
         return Response({'data': serializer.data})
 
     def create(self, request):
-        """POST /api/perfil-permissions/ - Crear nueva relación"""
-        serializer = PerfilPermissionsSerializer(data=request.data)
+        """POST /api/perfil-permissions/ - Crear o actualizar relación según se envíe id"""
+        data = request.data.copy()
+        permiso_rel_id = data.get('id', None)
+
+        if permiso_rel_id:
+            # Si se envía id, actualizamos; si no existe, lo creamos
+            defaults = {
+                'perfil_id': data.get('perfil_id'),
+                'permission_id': data.get('permission_id'),
+            }
+            rel_obj, created = PerfilPermissions.objects.update_or_create(
+                id=permiso_rel_id,
+                defaults=defaults
+            )
+            serializer = PerfilPermissionsSerializer(rel_obj)
+            mensaje = 'Relación registrada con éxito.' if created else 'Relación actualizada con éxito.'
+            return Response({'data': serializer.data, 'message': mensaje})
+
+        # Si no se envía id, creamos una nueva relación
+        serializer = PerfilPermissionsSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({'data': serializer.data, 'message': 'Relación registrada con éxito.'})
+            nueva_rel = serializer.save()
+            return Response({
+                'data': PerfilPermissionsSerializer(nueva_rel).data,
+                'message': 'Relación registrada con éxito.'
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, pk=None):

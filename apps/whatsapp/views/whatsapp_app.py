@@ -125,9 +125,82 @@ class WhatsappSendAPIView(APIView):
         return None
 
     def _send_media_from_url(self, request, url_file):
-        # similar a su ejemplo: construir file_path, multipart a Facebook, retornar {'status_code','response','path'}
-        # … (puede copiar la lógica de MessengerSendView que ya tiene)
-        pass
+        """
+        Envía archivo a WhatsApp API desde URL local del servidor Django.
+        Similar al comportamiento de Messenger pero adaptado para WhatsApp.
+        """
+        try:
+            # Construir ruta completa del archivo
+            # Basándose en MEDIA_ROOT = BASE_DIR y MEDIA_URL = '/media/'
+            if os.path.isabs(url_file):
+                # Si es ruta absoluta, usarla directamente
+                file_path = url_file
+            else:
+                # url_file viene como "/media/whatsapp/plantillas/file.jpg"
+                # Como MEDIA_ROOT = BASE_DIR, necesitamos quitar solo la primera barra
+                clean_path = url_file.lstrip('/')
+                file_path = os.path.join(settings.MEDIA_ROOT, clean_path)
+            
+            # Normalizar la ruta
+            file_path = os.path.normpath(file_path)
+            
+            if not os.path.exists(file_path):
+                return {
+                    'status_code': 404,
+                    'response': {
+                        'error': f'Archivo no encontrado: {file_path}',
+                        'url_received': url_file,
+                        'media_root': str(settings.MEDIA_ROOT),
+                        'base_dir': str(settings.BASE_DIR)
+                    },
+                    'path': url_file
+                }
+
+            # Leer archivo desde disco
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+                
+            # Obtener información del archivo
+            filename = os.path.basename(file_path)
+            file_extension = os.path.splitext(filename)[1].lower()
+            
+            # Determinar content_type basado en la extensión
+            content_type_map = {
+                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                '.png': 'image/png', '.gif': 'image/gif',
+                '.mp4': 'video/mp4', '.avi': 'video/avi',
+                '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+                '.pdf': 'application/pdf',
+                '.doc': 'application/msword',
+                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            }
+            content_type = content_type_map.get(file_extension, 'application/octet-stream')
+
+            # Request multipart a WhatsApp API (diferente estructura que Messenger)
+            multipart = {
+                'file': (filename, file_data, content_type),
+                'messaging_product': (None, 'whatsapp'),
+                'type': (None, request.data.get('typeMedia')),
+            }
+            headers = {'Authorization': f'Bearer {self.token}'}
+
+            # WhatsApp usa el endpoint /media (no /message_attachments como Messenger)
+            resp = requests.post(f'{self.url_api}/media',
+                                files=multipart,
+                                headers=headers)
+
+            return {
+                'status_code': resp.status_code,
+                'response': resp.json(),
+                'path': url_file  # Retornar la URL original sin guardar
+            }
+            
+        except Exception as e:
+            return {
+                'status_code': 500,
+                'response': {'error': f'Error procesando archivo: {str(e)}'},
+                'path': url_file
+            }
 
     def _send_media_from_upload(self, request, upload):
         # multipart a Facebook API + guardado en disk

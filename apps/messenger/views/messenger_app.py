@@ -128,13 +128,6 @@ class MessengerSendView(APIView):
             # Normalizar la ruta
             file_path = os.path.normpath(file_path)
             
-            # Debug: imprimir las rutas para verificar
-            print(f"URL recibida: {url_file}")
-            print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-            print(f"BASE_DIR: {settings.BASE_DIR}")
-            print(f"Ruta construida: {file_path}")
-            print(f"¿Archivo existe?: {os.path.exists(file_path)}")
-            
             if not os.path.exists(file_path):
                 return {
                     'status_code': 404,

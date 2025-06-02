@@ -16,11 +16,32 @@ class UserTokensViewSet(viewsets.ViewSet):
         return Response({'data': serializer.data})
 
     def create(self, request):
-        """POST /api/user-tokens/ - Crear nuevo token"""
-        serializer = UserTokensSerializer(data=request.data)
+        """POST /api/user-tokens/ - Crear o actualizar token según se envíe id"""
+        data = request.data.copy()
+        token_id = data.get('id', None)
+
+        if token_id:
+            defaults = {
+                'user_id': data.get('user_id'),
+                'token': data.get('token'),
+                'platform': data.get('platform'),
+                'state': data.get('state', 1),
+            }
+            token_obj, created = UserTokens.objects.update_or_create(
+                id=token_id,
+                defaults=defaults
+            )
+            serializer = UserTokensSerializer(token_obj)
+            mensaje = 'Token registrado con éxito.' if created else 'Token actualizado con éxito.'
+            return Response({'data': serializer.data, 'message': mensaje})
+
+        serializer = UserTokensSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(state=1)  # Por defecto activo
-            return Response({'data': serializer.data, 'message': 'Token registrado con éxito.'})
+            nuevo_token = serializer.save(state=1)
+            return Response({
+                'data': UserTokensSerializer(nuevo_token).data,
+                'message': 'Token registrado con éxito.'
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def update(self, request, pk=None):
