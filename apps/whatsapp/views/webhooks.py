@@ -8,7 +8,7 @@ from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
 from ...utils.pusher_client import pusher_client
 
 # Si dispone de utilidades para fechas en Perú:
-from apps.utils.datetime_func import get_date_tiem, get_naive_peru_time
+from apps.utils.datetime_func import get_date_time, get_naive_peru_time
 
 class WhatsappWebhookAPIView(APIView):
     """
@@ -70,12 +70,7 @@ class WhatsappWebhookAPIView(APIView):
             )
 
         # Fechas en formato local Perú
-        try:
-            Fecha, Hora = get_date_tiem()
-        except ImportError:
-            now = timezone.now()
-            Fecha = now.strftime('%d %B %Y')
-            Hora  = now.strftime('%H:%M')
+        Fecha, Hora = get_date_time()
 
         # Guardar mensaje entrante (Estado 2 = recibido)
         WhatsappMensajes.objects.create(
@@ -88,8 +83,9 @@ class WhatsappWebhookAPIView(APIView):
         )
 
         # Actualizar timestamps del chat
-        chat.FechaUltimaPlantilla = timezone.now()
-        chat.updated_at           = timezone.now()  # o get_naive_peru_time()
+        dateNative = get_naive_peru_time()
+        chat.FechaUltimaPlantilla = dateNative
+        chat.updated_at           = dateNative 
         chat.save()
 
         # Marcar como vistos los mensajes anteriores

@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
-from apps.utils.datetime_func import get_naive_peru_time
+from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
 
 class WhatsappSendAPIView(APIView):
     """
@@ -45,7 +45,7 @@ class WhatsappSendAPIView(APIView):
         chat = Whatsapp.objects.filter(
             IDRedSocial=data.get('IDRedSocial'),
             Telefono=phone,
-            FechaUltimaPlantilla__gt=timezone.now() - timezone.timedelta(days=1)
+            FechaUltimaPlantilla__gt=get_naive_peru_time_delta(days=-1)
         ).first()
 
         # 4) Si no hay chat reciente o mensaje == “plantilla”, enviamos template
@@ -54,7 +54,7 @@ class WhatsappSendAPIView(APIView):
             result  = self._send_msg_api(payload)
             if result['status_code'] == 200:
                 Whatsapp.objects.filter(IDChat=data.get('IDChat')).update(
-                    FechaUltimaPlantilla=timezone.now()
+                    FechaUltimaPlantilla=get_naive_peru_time()
                 )
         else:
             # 5) Procesar media (subida o URL)

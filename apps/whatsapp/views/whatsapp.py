@@ -55,7 +55,7 @@ class WhatsappStore(APIView):
             Nombre      = request.data['Nombre'],
             Telefono    = request.data['Telefono'],
             Estado      = 1,
-            updated_at  = timezone.now()
+            updated_at  = get_naive_peru_time()
         )
         return Response({'message': 'ok', 'data': WhatsappSerializer(w).data})
 

@@ -22,6 +22,7 @@ class MessengerPlantilla(models.Model):
     estado = models.BooleanField(default=True) 
     marca_id = models.ForeignKey(Marca, on_delete=models.PROTECT, db_column='marca_id', related_name='plantillas')
     tipo = models.IntegerField(default=0, blank=True, db_column='tipo', help_text='0: default, 1: entrada, 2: salida')
+    red_social = models.IntegerField(default=1, blank=True, db_column='red_social', help_text='1: Messenger, 2: Whatsapp')
 
     class Meta:
         db_table = 'messenger_plantillas'
@@ -37,6 +38,7 @@ class EstadoLead(models.Model):
     Nombre = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
     Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
     IDEstado = models.IntegerField(default=1, null=True, blank=True, db_column='IDEstado')
+    red_social = models.IntegerField(default=1, blank=True, db_column='red_social', help_text='1: Messenger, 2: Whatsapp')
 
     class Meta:
         db_table = 'EstadoLead'
@@ -51,6 +53,7 @@ class SubEstadoLead(models.Model):
     Nombre = models.CharField(max_length=150, null=True, blank=True, db_column='Nombre')
     Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
     IDEstado = models.IntegerField(default=1, null=True, blank=True, db_column='IDEstado')
+    red_social = models.IntegerField(default=1, blank=True, db_column='red_social', help_text='1: Messenger, 2: Whatsapp')
 
     class Meta:
         db_table = 'SubEstadoLead'

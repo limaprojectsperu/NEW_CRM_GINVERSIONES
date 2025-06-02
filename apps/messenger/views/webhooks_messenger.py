@@ -9,7 +9,7 @@ from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
-from apps.utils.datetime_func  import get_naive_peru_time, get_date_tiem
+from apps.utils.datetime_func  import get_naive_peru_time, get_date_time
 from apps.utils.tokens_phone import get_user_tokens_by_permissions
 from apps.openai.openai_chatbot import ChatbotService
 
@@ -131,7 +131,7 @@ class WebhookVerifyReceive(APIView):
                 )
         
         # Fechas en español
-        Fecha, Hora = get_date_tiem()
+        Fecha, Hora = get_date_time()
 
         # Guardar el nuevo mensaje (Estado 2 = recibido)
         new_msg = MessengerMensaje.objects.create(
@@ -173,7 +173,7 @@ class WebhookVerifyReceive(APIView):
         else:
             url = settings.BASE_URL_PRODUCTION + "api/messenger-app/send-message"
 
-        Fecha, Hora = get_date_tiem()
+        Fecha, Hora = get_date_time()
 
         # 1. Prepara los datos que necesitas enviar
         message_data = {

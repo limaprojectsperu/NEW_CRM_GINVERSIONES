@@ -8,36 +8,36 @@ urlpatterns = [
     path('marcas', BrandViewSet.as_view({ 'get': 'list' })),
 
         # APIs para EstadoLead
-    path('lead-estados-all', EstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-estados-all/<int:red_social>', EstadoLeadViewSet.as_view({ 'get': 'listAll' })),
     path('lead-estado', EstadoLeadViewSet.as_view({
-        'get': 'list',
         'post': 'create'
         }), name='estado-lead-list'),
     path('lead-estado/<int:pk>', EstadoLeadViewSet.as_view({
+        'get': 'list',
         'put': 'update',
         'delete': 'destroy'
         }), name='estado-lead-detail'),
     path('lead-estado/estado/<int:pk>', EstadoLeadViewSet.as_view({ 'put': 'updateState' })),
     
     # APIs para SubEstadoLead
-    path('lead-subestados-all', SubEstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-subestados-all/<int:red_social>', SubEstadoLeadViewSet.as_view({ 'get': 'listAll' })),
     path('lead-subestado', SubEstadoLeadViewSet.as_view({
-        'get': 'list',
         'post': 'create'
         }), name='subestado-lead-list'),
     path('lead-subestado/<int:pk>', SubEstadoLeadViewSet.as_view({
+        'get': 'list',
         'put': 'update',
         'delete': 'destroy'
         }), name='subestado-lead-detail'),
     path('lead-subestado/estado/<int:pk>', SubEstadoLeadViewSet.as_view({ 'put': 'updateState' })),
 
     # APIs Messenger plantilla
-    path('messenger-plantillas-all', MessengerPlantillaViewSet.as_view({'get': 'listAll'}), name='messenger-plantillas-all'),
+    path('messenger-plantillas-all/<int:red_social>', MessengerPlantillaViewSet.as_view({'get': 'listAll'})),
+    path('messenger-plantilla/<int:pk>/<int:red_social>', MessengerPlantillaViewSet.as_view({'get': 'list'})),
     path('messenger-plantilla', MessengerPlantillaViewSet.as_view({
         'post': 'create'
     }), name='messenger-plantilla-list'),
     path('messenger-plantilla/<int:pk>', MessengerPlantillaViewSet.as_view({
-        'get': 'list',
         'put': 'update',
         'delete': 'destroy'
     }), name='messenger-plantilla-detail'),

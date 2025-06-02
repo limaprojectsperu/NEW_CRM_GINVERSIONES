@@ -39,4 +39,17 @@ class SubEstadoLeadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubEstadoLead
-        fields = '__all__'
+        fields = (
+            'IDSubEstadoLead',
+            'id_estado_lead', 
+            'estado_lead',      
+            'Nombre',
+            'Color',
+            'IDEstado',      
+            'red_social', 
+        )
+        read_only_fields = (
+            'IDSubEstadoLead',
+            'IDEstado',
+            'estado_lead',
+        )

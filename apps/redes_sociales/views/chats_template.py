@@ -8,14 +8,14 @@ from ..serializers import MessengerPlantillaSingleSerializer, MessengerPlantilla
 
 class MessengerPlantillaViewSet(viewsets.ViewSet):
     """GET /api/messenger-plantillas-all/ """
-    def listAll(self, request):
-        plantillas = MessengerPlantilla.objects.select_related('marca_id').order_by('-id')
+    def listAll(self, request, red_social):
+        plantillas = MessengerPlantilla.objects.filter(red_social=red_social).select_related('marca_id').order_by('-id')
         serializer = MessengerPlantillaSerializer(plantillas, many=True)
         return Response({'data': serializer.data})
     
     """GET /api/messenger-plantilla/ devuelve solo where estado = True"""
-    def list(self, request, pk):
-        plantillas = MessengerPlantilla.objects.filter(marca_id=pk, estado=True).order_by('id')
+    def list(self, request, pk, red_social):
+        plantillas = MessengerPlantilla.objects.filter(marca_id=pk, estado=True, red_social=red_social).order_by('id')
         serializer = MessengerPlantillaSingleSerializer(plantillas, many=True)
         return Response({'data': serializer.data})
     
