@@ -50,14 +50,16 @@ class WhatsappList(APIView):
 class WhatsappStore(APIView):
     """ POST /api/whatsapp/store/ """
     def post(self, request):
+        new_date = get_naive_peru_time()
         w = Whatsapp.objects.create(
             IDRedSocial = request.data['IDRedSocial'],
             Nombre      = request.data['Nombre'],
             Telefono    = request.data['Telefono'],
             Estado      = 1,
-            updated_at  = get_naive_peru_time()
+            updated_at  = new_date,
+            FechaUltimaPlantilla = new_date
         )
-        return Response({'message': 'ok', 'data': WhatsappSerializer(w).data})
+        return Response({'message': 'Nuevo Chat registrado correctamente.', 'data': WhatsappSerializer(w).data})
 
 class WhatsappShow(APIView):
     """ GET /api/whatsapp/message/{id}/ """
@@ -78,6 +80,21 @@ class WhatsappSettingList(APIView):
         qs = WhatsappConfiguracion.objects.all()
         serializer = WhatsappConfiguracionSerializer(qs, many=True)
         return Response({'data': serializer.data})
+
+class WhatsappUpdateLead(APIView):
+    """
+    POST /api/whatsapp/update-lead/{id}/
+    """
+    def post(self, request, id):
+        payload = request.data
+        IDEL = payload.get('IDEL', {}).get('IDEL')
+        IDSub = payload.get('IDSubEstadoLead', {}).get('IDSubEstadoLead') if payload.get('IDSubEstadoLead') else None
+        
+        Whatsapp.objects.filter(IDChat=payload.get('IDChat')).update(
+            IDEL=IDEL,
+            IDSubEstadoLead=IDSub
+        )
+        return Response({'message': 'Estado actualizado con éxito.'})
 
 class WhatsappUpdate(APIView):
     """ POST /api/whatsapp/update-chat/{id}/ """
@@ -100,7 +117,7 @@ class WhatsappUpdate(APIView):
             avatar_url = os.path.join(settings.MEDIA_URL, 'whatsapp', 'avatars', str(id), name)
             Whatsapp.objects.filter(IDChat=id).update(Avatar=avatar_url)
 
-        return Response({'message': 'ok', 'data': avatar_url})
+        return Response({'message': 'Perfil actualizado con éxito.', 'data': avatar_url})
 
 class WhatsappUpdateDate(APIView):
     """ POST /api/whatsapp/update-date/{id}/ """

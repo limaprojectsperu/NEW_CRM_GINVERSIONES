@@ -64,7 +64,7 @@ class WhatsappWebhookAPIView(APIView):
         else:
             chat = Whatsapp.objects.create(
                 IDRedSocial          = setting.IDRedSocial,
-                Nombre               = name,
+                Nombre               = name if name else phone,
                 Telefono             = phone,
                 Estado               = 1
             )

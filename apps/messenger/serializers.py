@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Messenger, MessengerMensaje, MessengerConfiguracion
+from apps.redes_sociales.models import Marca 
 
 class MessengerMensajeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,8 +30,20 @@ class MessengerSerializer(serializers.ModelSerializer):
 
 
 class MessengerConfiguracionSerializer(serializers.ModelSerializer):
+    marca = serializers.SerializerMethodField()
+
     class Meta:
         model = MessengerConfiguracion
         fields = '__all__'
+
+    def get_marca(self, obj):
+        try:
+            marca = Marca.objects.get(id=obj.marca_id)
+            return {
+                'id': marca.id,
+                'nombre': marca.nombre
+            }
+        except Marca.DoesNotExist:
+            return None
 
 

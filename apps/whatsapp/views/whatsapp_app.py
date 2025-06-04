@@ -71,7 +71,7 @@ class WhatsappSendAPIView(APIView):
         saved = self._save_message(request, media.get('path') if locals().get('media') else None)
 
         return JsonResponse({
-            'message': 'ok',
+            'message': 'Mensaje enviado con éxito.',
             'lastMessage': {
                 'IDChatMensaje': saved.IDChatMensaje,
                 'IDChat':       saved.IDChat,
@@ -252,7 +252,7 @@ class WhatsappSendAPIView(APIView):
     def _save_message(self, request, url=None):
         msg = WhatsappMensajes.objects.create(
             IDChat    = request.data.get('IDChat'),
-            Telefono  = request.data.get('phone'),
+            Telefono  = request.data.get('Telefono'),
             Mensaje   = request.data.get('Mensaje'),
             Fecha     = request.data.get('Fecha'),
             Hora      = request.data.get('Hora'),

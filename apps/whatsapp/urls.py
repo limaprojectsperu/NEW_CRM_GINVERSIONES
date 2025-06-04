@@ -3,7 +3,7 @@ from .views.webhooks import WhatsappWebhookAPIView
 from .views.whatsapp_app import WhatsappSendAPIView
 from .views.whatsapp import (
     WhatsappListAll, WhatsappList, WhatsappStore, WhatsappShow, WhatsappSettingList,
-    WhatsappUpdate, WhatsappUpdateDate, WhatsappDestroy
+    WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, WhatsappDestroy
 )
 from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
@@ -31,6 +31,7 @@ urlpatterns = [
     path('whatsapp/store', WhatsappStore.as_view(),       name='whatsapp-store'),
     path('whatsapp/message/<int:id>', WhatsappShow.as_view(),   name='whatsapp-show'),
     path('whatsapp/setting', WhatsappSettingList.as_view()),
+    path('whatsapp/update-lead/<int:id>',    WhatsappUpdateLead.as_view()),
     path('whatsapp/update-chat/<int:id>', WhatsappUpdate.as_view(),    name='whatsapp-update'),
     path('whatsapp/update-date/<int:id>', WhatsappUpdateDate.as_view(), name='whatsapp-update-date'),
     path('whatsapp/delete/<int:id>',      WhatsappDestroy.as_view(),    name='whatsapp-destroy'),

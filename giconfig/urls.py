@@ -24,9 +24,10 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', home_view, name='home'), 
     path('admin/', admin.site.urls),
-    path('api/', include('apps.messenger.urls')),
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.redes_sociales.urls')),
+    path('api/', include('apps.messenger.urls')),
+    path('api/', include('apps.whatsapp.urls')),
 ]
 
 if settings.DEBUG:
