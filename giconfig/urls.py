@@ -30,5 +30,4 @@ urlpatterns = [
     path('api/', include('apps.whatsapp.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=os.path.join(settings.MEDIA_ROOT, 'media'))
+urlpatterns += static(settings.MEDIA_URL, document_root=os.path.join(settings.MEDIA_ROOT, 'media'))

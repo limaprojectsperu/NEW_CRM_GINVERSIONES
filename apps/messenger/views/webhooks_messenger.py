@@ -1,5 +1,4 @@
 import requests
-from django.conf import settings
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +11,8 @@ from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.datetime_func  import get_naive_peru_time, get_date_time
 from apps.utils.tokens_phone import get_user_tokens_by_permissions
 from apps.openai.openai_chatbot import ChatbotService
+from django.test import RequestFactory
+from ..views.messenger_app import MessengerSendView
 
 chatbot = ChatbotService()
 
@@ -186,11 +187,6 @@ class WebhookVerifyReceive(APIView):
         self.send_message(setting, chat, res, 2)
 
     def send_message(self, setting, chat, mensaje, origen = 1):
-        if settings.DEBUG:
-            url = settings.BASE_URL_LOCAL + "api/messenger-app/send-message"
-        else:
-            url = settings.BASE_URL_PRODUCTION + "api/messenger-app/send-message"
-
         Fecha, Hora = get_date_time()
 
         # 1. Prepara los datos que necesitas enviar
@@ -205,5 +201,15 @@ class WebhookVerifyReceive(APIView):
             "Hora": Hora,
             "origen": origen,
         }
-
-        requests.post(url, json=message_data, timeout=10)
+        
+        # Crear una request factory para simular la petición
+        factory = RequestFactory()
+        request = factory.post('/api/messenger-app/send-message/', 
+                            data=message_data, 
+                            content_type='application/json')
+        
+        # Llamar directamente a la vista
+        view = MessengerSendView()
+        response = view.post(request)
+        
+        return response

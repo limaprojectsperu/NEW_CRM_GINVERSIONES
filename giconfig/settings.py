@@ -28,9 +28,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'  # Esto hace que los archivos media se sirvan desde la raíz
 MEDIA_ROOT = BASE_DIR
 
-BASE_URL_LOCAL = 'http://127.0.0.1:3000/'
-BASE_URL_PRODUCTION = 'https://api2.grupoimagensac.com.pe/'
-
 # Zona horaria
 TIME_ZONE = 'America/Lima' 
 USE_TZ = True  
