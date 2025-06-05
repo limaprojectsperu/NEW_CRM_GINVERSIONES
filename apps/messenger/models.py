@@ -14,6 +14,7 @@ class MessengerConfiguracion(models.Model):
     urlApi       = models.CharField(max_length=100, null=True, blank=True, db_column='urlApi', help_text='urlApi')
     logo         = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
     Estado       = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado')
+    openai       = models.BooleanField(default=False) 
 
     class Meta:
         db_table = 'MessengerConfiguracion'
@@ -33,6 +34,7 @@ class Messenger(models.Model):
     IDSubEstadoLead = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead', help_text='ID sub estado')
     nuevos_mensajes = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     Estado      = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
+    openai      = models.BooleanField(default=True) 
 
     class Meta:
         db_table = 'Messenger'
@@ -52,6 +54,7 @@ class MessengerMensaje(models.Model):
     Url           = models.CharField(max_length=150, null=True, blank=True, db_column='Url')
     Extencion     = models.CharField(max_length=200, null=True, blank=True, db_column='Extencion')
     Estado        = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='1: enviado, 2: recibido, 3: visto')
+    origen = models.IntegerField(default=1, null=True, blank=True, db_column='origen', help_text='1: default, 2: openai')
 
     class Meta:
         db_table = 'MessengerMensaje'

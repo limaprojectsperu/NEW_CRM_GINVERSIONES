@@ -17,7 +17,7 @@ class MessengerSerializer(serializers.ModelSerializer):
         fields = [
             'IDChat', 'IDRedSocial', 'IDSender', 'Nombre',
             'updated_at', 'Avatar', 'IDEL', 'IDSubEstadoLead',
-            'Estado', 'lastMessage', 'nuevos_mensajes'
+            'Estado', 'lastMessage', 'nuevos_mensajes', 'openai'
         ]
 
     def get_lastMessage(self, obj):

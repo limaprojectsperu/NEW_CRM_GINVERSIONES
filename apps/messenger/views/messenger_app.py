@@ -69,6 +69,7 @@ class MessengerSendView(APIView):
                 'Url': mensaje_obj.Url,
                 'Extencion': mensaje_obj.Extencion,
                 'Estado': mensaje_obj.Estado,
+                'origen': mensaje_obj.origen,
             },
             'resultMedia': media,
             'data': result_api.get('response') if result_api else None,
@@ -273,7 +274,8 @@ class MessengerSendView(APIView):
             Hora      = request.data.get('Hora'),
             Url       = url,
             Extencion = request.data.get('Extencion'),
-            Estado    = 1
+            Estado    = 1,
+            origen = request.data.get('origen', 1)
         )
 
         Messenger.objects.filter(IDChat=request.data.get('IDChat')).update(

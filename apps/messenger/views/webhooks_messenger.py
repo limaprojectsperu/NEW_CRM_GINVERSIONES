@@ -51,7 +51,7 @@ class WebhookVerifyReceive(APIView):
         payload = request.data
         if not payload:
             return Response(status=status.HTTP_400_BAD_REQUEST)
- 
+
         self._init_chat(payload, IDRedSocial)
         pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
@@ -163,11 +163,29 @@ class WebhookVerifyReceive(APIView):
         #respuesta automatica
         if newChat:
             template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id, estado=True, tipo=1).first()
-    
             if template:
-                self.send_message(setting, chat, template)
+                self.send_message(setting, chat, template.mensaje)
+        
+        #open AI
+        if setting.openai and chat.openai:
+            self.open_ai_response(setting, chat)
 
-    def send_message(self, setting, chat, template):
+
+    def open_ai_response(self, setting, chat):
+        ultimos_mensajes = list(MessengerMensaje.objects.order_by('-IDChatMensaje')[:4])
+        ultimos_mensajes.reverse()
+        
+        messages = []
+        
+        for entry in ultimos_mensajes:
+            # Si IDSender coincide con el admin, es rol 'assistant'; si no, es 'user'
+            role = "assistant" if entry.IDSender == setting.IDSender else "user"
+            messages.append({"role": role, "content": entry.Mensaje})
+        
+        res = chatbot.get_response(setting.marca_id, messages)
+        self.send_message(setting, chat, res, 2)
+
+    def send_message(self, setting, chat, mensaje, origen = 1):
         if settings.DEBUG:
             url = settings.BASE_URL_LOCAL + "api/messenger-app/send-message"
         else:
@@ -182,9 +200,10 @@ class WebhookVerifyReceive(APIView):
             "IdRecipient": chat.IDSender,
             "IDChat": chat.IDChat,
             "IDSender": setting.IDSender,
-            "Mensaje": template.mensaje,
+            "Mensaje": mensaje,
             "Fecha": Fecha,
             "Hora": Hora,
+            "origen": origen,
         }
 
         requests.post(url, json=message_data, timeout=10)

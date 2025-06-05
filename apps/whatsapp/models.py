@@ -15,6 +15,7 @@ class WhatsappConfiguracion(models.Model):
     Language    = models.CharField(max_length=40, null=True, blank=True, db_column='Language')
     logo        = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
     Estado      = models.IntegerField(default=1, db_column='Estado', help_text='Estado del telefono asociado')
+    openai      = models.BooleanField(default=False) 
 
     class Meta:
         db_table = 'whatsapp_configuracion'
@@ -36,6 +37,7 @@ class Whatsapp(models.Model):
     IDSubEstadoLead      = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead')
     nuevos_mensajes      = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     Estado               = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
+    openai               = models.BooleanField(default=True) 
 
     class Meta:
         db_table = 'whatsapp'
@@ -56,6 +58,7 @@ class WhatsappMensajes(models.Model):
     Url           = models.CharField(max_length=150, null=True, blank=True, db_column='Url')
     Extencion     = models.CharField(max_length=200, null=True, blank=True, db_column='Extencion')
     Estado        = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado del mensaje, 1: enviado, 2: recibido, 3: visto')
+    origen = models.IntegerField(default=1, null=True, blank=True, db_column='origen', help_text='1: default, 2: openai')
 
     class Meta:
         db_table = 'whatsapp_mensajes'

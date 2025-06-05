@@ -125,6 +125,12 @@ class WhatsappUpdateDate(APIView):
         Whatsapp.objects.filter(IDChat=id).update(updated_at=get_naive_peru_time())
         return Response({'message': 'ok'})
 
+class WhatsappUpdateOpenai(APIView):
+    """ POST /api/whatsapp/update-openai/{id}/ """
+    def post(self, request, id):
+        Whatsapp.objects.filter(IDChat=id).update(openai=request.data.get('openai'))
+        return Response({'message': 'ok'})
+
 class WhatsappDestroy(APIView):
     """ POST /api/whatsapp/delete/{id}/ """
     def post(self, request, id):

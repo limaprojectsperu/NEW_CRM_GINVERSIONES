@@ -15,7 +15,7 @@ class WhatsappSerializer(serializers.ModelSerializer):
         fields = [
             'IDChat', 'IDRedSocial', 'Nombre', 'Telefono',
             'FechaUltimaPlantilla', 'updated_at', 'Avatar',
-            'IDEL', 'IDSubEstadoLead', 'Estado', 'nuevos_mensajes',
+            'IDEL', 'IDSubEstadoLead', 'Estado', 'nuevos_mensajes', 'openai',
             'lastMessage'
         ]
 

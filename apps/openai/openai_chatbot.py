@@ -1,32 +1,41 @@
-# services/chatbot.py
 import openai
 from django.conf import settings
-from .system_prompt.g_inversiones import system_prompt_g_inversiones
+from .system_prompt.system_prompt_messenger import (
+    system_prompt_g_inversiones,
+    system_prompt_presta_capital
+)
 
 class ChatbotService:
     def __init__(self):
-        # Esto sí se ejecutará al instanciar ChatbotService
         openai.api_key = settings.OPENAI_API_KEY
-        self.system_prompt = system_prompt_g_inversiones()
 
-    def get_response(self, user_message, conversation_history=None):
-        # Construyo el prompt completo
-        messages = [{"role": "system", "content": self.system_prompt}]
-        if conversation_history:
-            for msg in conversation_history[-6:]:
-                role = "user" if msg.is_user_message else "assistant"
-                messages.append({"role": role, "content": msg.message_text})
-        messages.append({"role": "user", "content": user_message})
+    def get_response(self, brand, conversation_history = []):
+        # 1. Seleccionamos el system_prompt según la marca
+        if brand == 4:
+            prompt = system_prompt_g_inversiones()
+        elif brand == 1:
+            prompt = system_prompt_presta_capital()
+        else:
+            # En caso de que llegue una marca desconocida, puede usarse un prompt genérico
+            prompt = (
+                "Información Genérica:\n"
+                "- Responde de forma amigable y profesional.\n"
+                "- Si no reconoces la marca indicada, sugiere contactar a un asesor."
+            )
 
+        # 2. Construimos el array de mensajes
+        messages = [{"role": "system", "content": prompt}]
+        messages.extend(conversation_history) 
+        #messages.append({"role": "user", "content": user_message})
+        
+        # 3. Llamamos a la API
         try:
             resp = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
-                max_tokens=60,
+                max_tokens=200,
                 temperature=0.7
             )
             return resp.choices[0].message.content.strip()
-        except Exception as e:
-            # Devuelvo solo el texto de la excepción, así no intento serializar objetos internos
-            return str(e)
-            
+        except Exception:
+            return "Disculpa, tengo problemas técnicos en este momento. Por favor, vuelve a contactar más tarde."

@@ -70,6 +70,14 @@ class MessengerUpdateDate(APIView):
         Messenger.objects.filter(IDChat=id).update(updated_at=get_naive_peru_time())
         return Response({'message': 'ok'})
 
+class MessengerUpdateOpenai(APIView):
+    """
+    POST /api/messenger/update-openai/{id}/
+    """
+    def post(self, request, id):
+        Messenger.objects.filter(IDChat=id).update(openai=request.data.get('openai'))
+        return Response({'message': 'ok'})
+
 
 class MessengerSettingList(APIView):
     """
