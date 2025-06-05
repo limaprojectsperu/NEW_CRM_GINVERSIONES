@@ -12,7 +12,10 @@ from apps.utils.datetime_func  import get_naive_peru_time, get_date_time
 from apps.utils.tokens_phone import get_user_tokens_by_permissions
 from apps.openai.openai_chatbot import ChatbotService
 from django.test import RequestFactory
+from rest_framework.request import Request
 from ..views.messenger_app import MessengerSendView
+import json
+from rest_framework.parsers import JSONParser
 
 chatbot = ChatbotService()
 
@@ -202,14 +205,19 @@ class WebhookVerifyReceive(APIView):
             "origen": origen,
         }
         
-        # Crear una request factory para simular la petición
+        # Crear una request factory
         factory = RequestFactory()
-        request = factory.post('/api/messenger-app/send-message/', 
-                            data=message_data, 
-                            content_type='application/json')
+        # Crear WSGIRequest con JSON data
+        django_request = factory.post(
+            '/api/messenger-app/send-message/',
+            data=json.dumps(message_data),
+            content_type='application/json'
+        )
         
+        # Convertir a DRF Request con parser específico
+        drf_request = Request(django_request, parsers=[JSONParser()])
         # Llamar directamente a la vista
         view = MessengerSendView()
-        response = view.post(request)
+        response = view.post(drf_request)
         
         return response
