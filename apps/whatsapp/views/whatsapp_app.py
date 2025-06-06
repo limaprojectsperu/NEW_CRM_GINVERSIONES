@@ -40,6 +40,7 @@ class WhatsappSendAPIView(APIView):
         phone   = data.get('phone')
         text    = data.get('Mensaje', '')
         result  = None
+        media   = None
 
         # 3) Buscar chat reciente para plantilla
         chat = Whatsapp.objects.filter(
@@ -48,7 +49,7 @@ class WhatsappSendAPIView(APIView):
             FechaUltimaPlantilla__gt=get_naive_peru_time_delta(days=-1)
         ).first()
 
-        # 4) Si no hay chat reciente o mensaje == “plantilla”, enviamos template
+        # 4) Si no hay chat reciente o mensaje == "plantilla", enviamos template
         if not chat or text.lower() == 'plantilla':
             payload = self._build_template_payload(phone)
             result  = self._send_msg_api(payload)
@@ -62,13 +63,18 @@ class WhatsappSendAPIView(APIView):
             if media:
                 payload = self._build_media_payload(phone, data.get('type'), media, data.get('name'))
                 result  = self._send_msg_api(payload)
-            # 6) Enviar texto adicional
+            
+            # 6) Enviar texto adicional (solo si hay texto)
             if text:
                 payload = self._build_text_payload(phone, text)
                 result  = self._send_msg_api(payload)
 
         # 7) Guardar mensaje en BD
-        saved = self._save_message(request, media.get('path') if locals().get('media') else None)
+        file_url = None
+        if media:
+            file_url = media.get('path')
+        
+        saved = self._save_message(request, file_url)
 
         return JsonResponse({
             'message': 'Mensaje enviado con éxito.',
@@ -82,66 +88,72 @@ class WhatsappSendAPIView(APIView):
                 'Extencion':    saved.Extencion,
                 'Estado':       saved.Estado,
             },
-            'resultMedia': media if locals().get('media') else None,
+            'resultMedia': media,
             'data':        result.get('response')   if result else None,
             'status':      result.get('status_code') if result else None,
-        }, status=result.get('status_code', 200))
+        }, status=result.get('status_code', 200) if result else 200)
 
     def _init_setting(self, IDRedSocial):
+        """Carga configuración dinámica desde la BD"""
         cfg = WhatsappConfiguracion.objects.filter(IDRedSocial=IDRedSocial).first()
-        if not cfg:
-            return
-        self.token      = cfg.Token
-        self.token_hook = cfg.TokenHook
-        self.url_api    = cfg.urlApi
-        self.template   = cfg.Template
-        self.language   = cfg.Language
+        if cfg:
+            self.token      = cfg.Token
+            self.token_hook = cfg.TokenHook
+            self.url_api    = cfg.urlApi
+            self.template   = cfg.Template
+            self.language   = cfg.Language
 
     def _send_msg_api(self, payload_json):
+        """Envía mensaje a la API de WhatsApp"""
         headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type':  'application/json',
         }
-        resp = requests.post(f'{self.url_api}/messages',
-                             headers=headers,
-                             data=payload_json)
-        return {
-            'response':    resp.json(),
-            'status_code': resp.status_code
-        }
+        try:
+            resp = requests.post(f'{self.url_api}/messages',
+                               headers=headers,
+                               data=payload_json,
+                               timeout=30)
+            return {
+                'response':    resp.json() if resp.text else {},
+                'status_code': resp.status_code
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                'response':    {'error': f'Error de conexión: {str(e)}'},
+                'status_code': 500
+            }
 
     def _send_media(self, request):
         """
         Soporta subida de archivo (request.FILES['file']) o URL local (request.data['urlFile'])
         """
-        # 1) URL local
+        # 1) URL local (nueva funcionalidad)
         url_file = request.data.get('urlFile')
         if url_file:
             return self._send_media_from_url(request, url_file)
-        # 2) Upload multipart
+        
+        # 2) Upload multipart (funcionalidad original)
         upload = request.FILES.get('file')
         if upload:
             return self._send_media_from_upload(request, upload)
+        
         return None
 
     def _send_media_from_url(self, request, url_file):
         """
         Envía archivo a WhatsApp API desde URL local del servidor Django.
-        Similar al comportamiento de Messenger pero adaptado para WhatsApp.
         """
         try:
             # Construir ruta completa del archivo
-            # Basándose en MEDIA_ROOT = BASE_DIR y MEDIA_URL = '/media/'
             if os.path.isabs(url_file):
-                # Si es ruta absoluta, usarla directamente
                 file_path = url_file
             else:
                 # url_file viene como "/media/whatsapp/plantillas/file.jpg"
-                # Como MEDIA_ROOT = BASE_DIR, necesitamos quitar solo la primera barra
                 clean_path = url_file.lstrip('/')
                 file_path = os.path.join(settings.MEDIA_ROOT, clean_path)
             
-            # Normalizar la ruta
+            # Normalizar y verificar que existe
             file_path = os.path.normpath(file_path)
             
             if not os.path.exists(file_path):
@@ -150,8 +162,6 @@ class WhatsappSendAPIView(APIView):
                     'response': {
                         'error': f'Archivo no encontrado: {file_path}',
                         'url_received': url_file,
-                        'media_root': str(settings.MEDIA_ROOT),
-                        'base_dir': str(settings.BASE_DIR)
                     },
                     'path': url_file
                 }
@@ -176,23 +186,26 @@ class WhatsappSendAPIView(APIView):
             }
             content_type = content_type_map.get(file_extension, 'application/octet-stream')
 
-            # Request multipart a WhatsApp API (diferente estructura que Messenger)
-            multipart = {
+            # Request multipart a WhatsApp API
+            files = {
                 'file': (filename, file_data, content_type),
-                'messaging_product': (None, 'whatsapp'),
-                'type': (None, request.data.get('typeMedia')),
+            }
+            data_form = {
+                'messaging_product': 'whatsapp',
+                'type': request.data.get('typeMedia', 'document'),
             }
             headers = {'Authorization': f'Bearer {self.token}'}
 
-            # WhatsApp usa el endpoint /media (no /message_attachments como Messenger)
             resp = requests.post(f'{self.url_api}/media',
-                                files=multipart,
-                                headers=headers)
+                               files=files,
+                               data=data_form,
+                               headers=headers,
+                               timeout=60)
 
             return {
                 'status_code': resp.status_code,
-                'response': resp.json(),
-                'path': url_file  # Retornar la URL original sin guardar
+                'response': resp.json() if resp.text else {},
+                'path': url_file  # Retornar la URL original
             }
             
         except Exception as e:
@@ -203,53 +216,103 @@ class WhatsappSendAPIView(APIView):
             }
 
     def _send_media_from_upload(self, request, upload):
-        # multipart a Facebook API + guardado en disk
-        filename    = f'{int(timezone.now().timestamp())}{os.path.splitext(upload.name)[1]}'
-        rel_path    = f'whatsapp/{request.data.get("IDChat")}/{filename}'
-        default_storage.save(rel_path, upload)
-        multipart   = {
-            'file':        (upload.name, upload.read(), upload.content_type),
-            'messaging_product': (None, 'whatsapp'),
-            'type':        (None, request.data.get('typeMedia')),
-        }
-        headers     = {'Authorization': f'Bearer {self.token}'}
-        resp        = requests.post(f'{self.url_api}/media',
-                                    files=multipart,
-                                    headers=headers)
-        return {
-            'status_code': resp.status_code,
-            'response':    resp.json(),
-            'path':        default_storage.url(rel_path)
-        }
-
+        """
+        Maneja archivos subidos via FormData - CORREGIDO con método de guardado que funciona
+        """
+        try:
+            # Obtener teléfono para crear la estructura de carpetas
+            telefono = request.data.get("Telefono", "unknown")
+            
+            # Crear la carpeta si no existe (usando el método que funciona)
+            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
+            folder_path = os.path.join(media_dir, 'whatsapp', telefono)
+            os.makedirs(folder_path, exist_ok=True)
+            
+            # Generar nombre único para el archivo
+            timestamp = int(timezone.now().timestamp())
+            extension = os.path.splitext(upload.name)[1] if upload.name else ''
+            filename = f'{timestamp}{extension}'
+            rel_path = f'media/whatsapp/{telefono}/{filename}'
+            
+            # Resetear puntero del archivo para leer para WhatsApp API
+            upload.seek(0)
+            
+            # Enviar a WhatsApp API
+            files = {
+                'file': (upload.name, upload.read(), upload.content_type),
+            }
+            data_form = {
+                'messaging_product': 'whatsapp',
+                'type': request.data.get('typeMedia', 'document'),
+            }
+            headers = {'Authorization': f'Bearer {self.token}'}
+            
+            resp = requests.post(f'{self.url_api}/media',
+                            files=files,
+                            data=data_form,
+                            headers=headers,
+                            timeout=60)
+            
+            # Reiniciar el puntero del archivo para guardarlo localmente
+            upload.seek(0)
+            default_storage.save(rel_path, upload)
+            
+            return {
+                'status_code': resp.status_code,
+                'response': resp.json() if resp.text else {},
+                'path': f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/{telefono}/{filename}"
+            }
+            
+        except Exception as e:
+            return {
+                'status_code': 500,
+                'response': {'error': f'Error subiendo archivo: {str(e)}'},
+                'path': None
+            }
+    
     def _build_template_payload(self, to_phone):
+        """Construye payload para plantilla"""
         return json.dumps({
             "messaging_product": "whatsapp",
-            "to":                to_phone,
-            "type":              "template",
+            "to": to_phone,
+            "type": "template",
             "template": {
-                "name":     self.template,
+                "name": self.template,
                 "language": {"code": self.language}
             }
         })
 
     def _build_text_payload(self, to_phone, body):
+        """Construye payload para mensaje de texto"""
         return json.dumps({
             "messaging_product": "whatsapp",
-            "to":                to_phone,
-            "type":              "text",
-            "text": {"body": body, "preview_url": False}
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "text",
+            "text": {
+                "preview_url": False,
+                "body": body
+            }
         })
 
-    def _build_media_payload(self, to_phone, media_type, media, filename):
+    def _build_media_payload(self, to_phone, media_type, media, filename=None):
+        """Construye payload para envío de media - CORREGIDO"""
+        media_content = {"id": media['response'].get('id')}
+        
+        # Para documentos, agregar filename si se proporciona
+        if media_type == 'document' and filename:
+            media_content["filename"] = filename
+            
         return json.dumps({
             "messaging_product": "whatsapp",
-            "to":                to_phone,
-            "type":              media_type,
-            media_type: {"id": media['response'].get('id')}
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": media_type,
+            media_type: media_content
         })
 
     def _save_message(self, request, url=None):
+        """Guarda mensaje en la BD"""
         msg = WhatsappMensajes.objects.create(
             IDChat    = request.data.get('IDChat'),
             Telefono  = request.data.get('Telefono'),
@@ -260,7 +323,10 @@ class WhatsappSendAPIView(APIView):
             Extencion = request.data.get('Extencion'),
             Estado    = 1
         )
+        
+        # Actualizar timestamp del chat
         Whatsapp.objects.filter(IDChat=request.data.get('IDChat')).update(
             updated_at=get_naive_peru_time()
         )
+        
         return msg

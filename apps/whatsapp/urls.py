@@ -23,7 +23,7 @@ nivel_save_image = NivelViewSet.as_view({
 
 urlpatterns = [
     # Meta api
-    path('webhooks-whatsapp/app/<int:IDRedSocial>', WhatsappWebhookAPIView.as_view(), name='whatsapp-webhook'),
+    path('webhooks-whatsapp/app', WhatsappWebhookAPIView.as_view(), name='whatsapp-webhook'),
     path('whatsapp-app/send-message', WhatsappSendAPIView.as_view()),
 
     # whatsapp api
