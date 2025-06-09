@@ -7,6 +7,11 @@ class WhatsappMensajesSerializer(serializers.ModelSerializer):
         model = WhatsappMensajes
         fields = '__all__'
 
+class WhatsappSingleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Whatsapp
+        fields = '__all__'
+
 class WhatsappSerializer(serializers.ModelSerializer):
     lastMessage = serializers.SerializerMethodField()
 

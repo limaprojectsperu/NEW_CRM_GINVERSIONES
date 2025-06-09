@@ -34,7 +34,15 @@ class NivelViewSet(viewsets.ViewSet):
         GET /api/level-all/
         Sólo niveles activos + newMessages
         """
+        padre = int(request.query_params.get('IDNivelPadre', -1))
+        nivel = int(request.query_params.get('Nivel', -1))
+
         qs = Niveles.objects.filter(IDEstado=1)
+        if padre > 0:
+            qs = qs.filter(IDNivelPadre=padre)
+        if nivel > 0:
+            qs = qs.filter(Nivel=nivel)
+
         serializer = NivelSerializer(qs, many=True)
         data = serializer.data
         for obj, row in zip(qs, data):
@@ -66,7 +74,7 @@ class NivelViewSet(viewsets.ViewSet):
         serializer = NivelSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'data': serializer.data, 'message': 'ok'})
+            return Response({'data': serializer.data, 'message': 'Nivel registrado con éxito.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
@@ -78,8 +86,18 @@ class NivelViewSet(viewsets.ViewSet):
         serializer = NivelSerializer(nivel, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'data': serializer.data, 'message': 'ok'})
+            return Response({'data': serializer.data, 'message': 'Nivel actualizado con éxito.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def updateState(self, request, pk=None):
+        """
+        Método update - Actualizar Estado
+        """
+        estado = Niveles.objects.get(IDNivel=pk)
+        estado.IDEstado = request.data.get('IDEstado')
+        estado.save()
+        serializer = NivelSerializer(estado)
+        return Response({"data": serializer.data, "message": "Estado actualizado con éxito."})
 
     def destroy(self, request, pk=None):
         """
@@ -87,7 +105,7 @@ class NivelViewSet(viewsets.ViewSet):
         Marcar IDEstado = 0
         """
         Niveles.objects.filter(IDNivel=pk).update(IDEstado=0)
-        return Response({'message': 'ok'})
+        return Response({'message': 'Nivel desactivado exitosamente.'})
 
     def save_image(self, request, pk=None):
         """
@@ -96,20 +114,28 @@ class NivelViewSet(viewsets.ViewSet):
         """
         nivel = Niveles.objects.get(IDNivel=pk)
         upload = request.FILES.get('URLImagen')
+        URLImagen = None
+        
         if upload:
-            folder = os.path.join(settings.MEDIA_ROOT, 'media', 'nivel')
-            os.makedirs(folder, exist_ok=True)
+            # Crear directorios si no existen
+            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
+            nivel_dir = os.path.join(media_dir, 'nivel')
+            os.makedirs(nivel_dir, exist_ok=True)
 
-            ext      = os.path.splitext(upload.name)[1]
-            filename = f"{int(timezone.now().timestamp())}{ext}"
-            fullpath = os.path.join(folder, filename)
-
-            with open(fullpath, 'wb+') as dest:
+            # Generar nombre de archivo usando timestamp
+            extension = os.path.splitext(upload.name)[1]  # Obtener extensión
+            filename = f'{int(timezone.now().timestamp())}{extension}'
+            ruta = f'media/nivel/{filename}'  # Ruta relativa
+            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
+            
+            # Guardar el archivo
+            with open(full_path, 'wb+') as destino:
                 for chunk in upload.chunks():
-                    dest.write(chunk)
-
-            # Actualizamos campo con la URL accesible
-            nivel.URLImagen = os.path.join(settings.MEDIA_URL, 'nivel', filename)
+                    destino.write(chunk)
+            
+            # Crear la URL correcta con MEDIA_URL (asegurando una sola barra)
+            nivel.URLImagen = f"{settings.MEDIA_URL.rstrip('/')}/nivel/{filename}"
             nivel.save()
+            URLImagen = nivel.URLImagen
 
-        return Response({'message': 'ok'})
+        return Response({'message': 'ok', 'data': URLImagen})

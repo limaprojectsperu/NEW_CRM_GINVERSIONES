@@ -6,13 +6,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
 from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion
-from ..serializers import WhatsappSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
+from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
     def get(self, request):
         qs = Whatsapp.objects.filter(Estado=1)
-        data = WhatsappSerializer(qs, many=True).data
+        data = WhatsappSingleSerializer(qs, many=True).data
         return Response({'data': data})
 
 class WhatsappList(APIView):

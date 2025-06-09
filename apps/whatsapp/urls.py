@@ -43,6 +43,7 @@ urlpatterns = [
     path('level', nivel_list, name='level-list-create'),
     path('level/<int:pk>', nivel_detail, name='level-detail'),
     path('level/<int:pk>/save-image', nivel_save_image, name='level-save-image'),
+    path('level/<int:pk>/estado', NivelViewSet.as_view({ 'put': 'updateState' })),
 
     # level whatsapp
     path('whatsapp-level/show/<int:id>',   ChatLevelShow.as_view(),   name='chatlevel-show'),

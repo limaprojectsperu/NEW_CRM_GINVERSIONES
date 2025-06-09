@@ -28,4 +28,4 @@ class ChatLevelUpdate(APIView):
         ChatNiveles.objects.bulk_create(objs)
         # Marcar NivelFinal según existencia de chats
         Niveles.objects.filter(IDNivel=id).update(NivelFinal=1 if len(chats) > 0 else 0)
-        return Response({'message': 'ok'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Se guardó correctamente los cambios.'}, status=status.HTTP_200_OK)
