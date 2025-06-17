@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import RequestException
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from apps.users.models import Users, UserTokens, Permissions, Perfiles, PerfilPermissions
+from apps.users.models import Users, Permissions, Perfiles, PerfilPermissions
 
 class Command(BaseCommand):
     help = 'Limpia tablas e importa datos desde APIs externas'
@@ -17,12 +17,6 @@ class Command(BaseCommand):
                 'url': 'https://sistema.grupoimagensac.com.pe/api/usuarios',
                 'model': Users,
                 'pk': 'co_usuario',
-                'wrapper_key': 'data',
-            },
-            'tokens': {
-                'url': 'https://sistema.grupoimagensac.com.pe/api/token-usuarios',
-                'model': UserTokens,
-                'pk': 'id',
                 'wrapper_key': 'data',
             },
             'permissions': {
@@ -51,7 +45,6 @@ class Command(BaseCommand):
             with transaction.atomic():
                 # Orden importante: eliminar dependencias primero
                 PerfilPermissions.objects.all().delete()
-                UserTokens.objects.all().delete()
                 Users.objects.all().delete()
                 Permissions.objects.all().delete()
                 Perfiles.objects.all().delete()
