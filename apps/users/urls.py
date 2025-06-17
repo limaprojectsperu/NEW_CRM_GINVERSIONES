@@ -4,11 +4,8 @@ from .views.user_tokens import UserTokensViewSet
 from .views.permissions import PermissionsViewSet 
 from .views.perfiles import PerfilesViewSet 
 from .views.perfil_permissions import PerfilPermissionsViewSet 
-from .views.import_data import ImportData
 
 urlpatterns = [
-    path('import-data', ImportData.as_view()),
-
      # URLs para Users
     path('users', UsersViewSet.as_view({
         'get': 'list',

@@ -91,7 +91,7 @@ MIDDLEWARE = [
 # Crontab 
 CRONJOBS = [
     (
-        "*/1 * * * *", 
+        "0 2 * * 1",  # Cada lunes a las 2:00 AM
         "apps.management.commands.messenger_scheduled_task",
         ">> /code/cron_messenger.log 2>&1"
     ), # cada minuto
