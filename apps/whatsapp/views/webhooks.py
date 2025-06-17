@@ -83,7 +83,7 @@ class WhatsappWebhookAPIView(APIView):
 
             #push notification
             firebase_service = FirebaseServiceV1()
-            tokens = get_user_tokens_by_permissions("whatsapp.index")
+            tokens = get_user_tokens_by_permissions("messenger.index")
             if len(tokens) > 0:
                 firebase_service.send_to_multiple_devices(
                     tokens=tokens,
