@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'apps.redes_sociales',
     'apps.messenger',
     'apps.whatsapp',
+    'apps.chat_interno',
 ]
 
 MIDDLEWARE = [

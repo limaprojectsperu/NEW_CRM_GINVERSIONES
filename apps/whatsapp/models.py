@@ -28,7 +28,7 @@ class WhatsappConfiguracion(models.Model):
 class Whatsapp(models.Model):
     IDChat               = models.AutoField(primary_key=True, db_column='IDChat')
     IDRedSocial          = models.IntegerField(default=1, db_column='IDRedSocial')
-    Nombre               = models.CharField(max_length=50, null=True, blank=True, db_column='Nombre')
+    Nombre               = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
     Telefono             = models.CharField(max_length=50, null=True, blank=True, db_column='Telefono')
     FechaUltimaPlantilla = models.DateTimeField(null=True, blank=True, db_column='FechaUltimaPlantilla')
     updated_at           = models.DateTimeField(null=True, blank=True, db_column='updated_at')
