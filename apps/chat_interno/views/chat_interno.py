@@ -5,32 +5,27 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
-from ..models import ChatInterno, ChatInternoMensaje, ChatInternoConfiguracion, ChatInternoMiembro
+from ..models import ChatInterno, ChatInternoMensaje, ChatInternoMiembro
 from ..serializers import (
     ChatInternoSerializer,
     ChatInternoMensajeSerializer,
-    ChatInternoConfiguracionSerializer,
     ChatInternoMiembroSerializer
 )
+from apps.utils.find_states import find_state_id
 
 class ChatInternoList(APIView):
     """
-    POST /api/chat-interno/{id}/?IDEL=&IDSubEstadoLead=
+    POST /api/chat-interno/{id}/?IDEL=
     Lista los chats internos con filtros opcionales
     """
-    def post(self, request, id):
+    def post(self, request):
         IDEL = int(request.data.get('IDEL', -1))
-        IDSub = int(request.data.get('IDSubEstadoLead', -1))
         tipo_chat = int(request.data.get('tipo_chat', 0))
         search_text = request.data.get('searchMessage', '').strip()
         user_id = request.data.get('user_id')  # Para filtrar chats donde el usuario es miembro
 
-        qs = ChatInterno.objects.filter(IDRedSocial=id, Estado=1)
+        qs = ChatInterno.objects.filter(Estado=1)
         
-        if IDEL > 0:
-            qs = qs.filter(IDEL=IDEL)
-        if IDSub > 0:
-            qs = qs.filter(IDSubEstadoLead=IDSub)
         if tipo_chat > 0:
             qs = qs.filter(tipo_chat=tipo_chat)
 
@@ -38,8 +33,22 @@ class ChatInternoList(APIView):
         if user_id:
             chats_miembro = ChatInternoMiembro.objects.filter(
                 user_id=user_id
-            ).values_list('chat_interno_id', flat=True)
-            qs = qs.filter(IDChat__in=chats_miembro)
+            )
+            
+            # Aplicar filtro por IDEL si se especificó
+            if IDEL > 0:
+                chats_miembro = chats_miembro.filter(IDEL=IDEL)
+                
+            # Obtener IDs de chats donde el usuario es miembro
+            chat_ids = chats_miembro.values_list('chat_interno_id', flat=True)
+            qs = qs.filter(IDChat__in=chat_ids)
+        else:
+            # Si no se especifica user_id pero sí IDEL, filtrar chats que tengan algún miembro con ese IDEL
+            if IDEL > 0:
+                chats_con_estado = ChatInternoMiembro.objects.filter(
+                    IDEL=IDEL
+                ).values_list('chat_interno_id', flat=True).distinct()
+                qs = qs.filter(IDChat__in=chats_con_estado)
 
         # Búsqueda en mensajes
         if search_text:
@@ -70,10 +79,12 @@ class ChatInternoMessages(APIView):
         # Resetear contador de nuevos mensajes para el usuario actual
         user_id = request.headers.get('userid')
         if user_id:
-            ChatInternoMiembro.objects.filter(
-                chat_interno_id=id, 
-                user_id=user_id
-            ).update(nuevos_mensajes=0)
+            chat = ChatInternoMiembro.objects.filter(chat_interno_id=id, user_id=user_id).first()
+            if chat:
+                chat.nuevos_mensajes = 0
+                if chat.IDEL == find_state_id(3, 'No leído'):
+                    chat.IDEL = find_state_id(3, 'Leído')
+                chat.save()
         
         return Response({'data': serializer.data})
 
@@ -98,17 +109,6 @@ class ChatInternoUpdateDate(APIView):
         return Response({'message': 'Fecha actualizada correctamente'})
 
 
-class ChatInternoSettingList(APIView):
-    """
-    GET /api/chat-interno/setting/
-    Lista todas las configuraciones de chat interno
-    """
-    def get(self, request):
-        qs = ChatInternoConfiguracion.objects.all()
-        serializer = ChatInternoConfiguracionSerializer(qs, many=True)
-        return Response({'data': serializer.data})
-
-
 class ChatInternoUpdateLead(APIView):
     """
     POST /api/chat-interno/update-lead/{id}/
@@ -117,11 +117,10 @@ class ChatInternoUpdateLead(APIView):
     def post(self, request, id):
         payload = request.data
         IDEL = payload.get('IDEL', {}).get('IDEL')
-        IDSub = payload.get('IDSubEstadoLead', {}).get('IDSubEstadoLead') if payload.get('IDSubEstadoLead') else None
+        user_id = payload.get('user_id')
         
-        ChatInterno.objects.filter(IDChat=payload.get('IDChat')).update(
+        ChatInternoMiembro.objects.filter(chat_interno_id=id, user_id=user_id).update(
             IDEL=IDEL,
-            IDSubEstadoLead=IDSub
         )
         return Response({'message': 'Estado del lead actualizado con éxito.'})
 
@@ -191,7 +190,6 @@ class ChatInternoCreate(APIView):
         
         # Crear el chat
         chat = ChatInterno.objects.create(
-            IDRedSocial=data.get('IDRedSocial', 1),
             Nombre=data.get('Nombre'),
             tipo_chat=data.get('tipo_chat', 1),
             descripcion=data.get('descripcion', ''),
@@ -204,7 +202,8 @@ class ChatInternoCreate(APIView):
             ChatInternoMiembro.objects.create(
                 chat_interno_id=chat,
                 user_id=miembro_data.get('user_id'),
-                rol=miembro_data.get('rol', 'Miembro')
+                rol=miembro_data.get('rol', 'Miembro'),
+                IDEL=find_state_id(3, 'No leído'),
             )
         
         serializer = ChatInternoSerializer(chat)

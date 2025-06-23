@@ -16,6 +16,7 @@ from rest_framework.request import Request
 from ..views.messenger_app import MessengerSendView
 import json
 from rest_framework.parsers import JSONParser
+from apps.utils.find_states import find_state_id
 
 chatbot = ChatbotService()
 
@@ -116,7 +117,7 @@ class WebhookVerifyReceive(APIView):
             chat = Messenger.objects.create(
                 IDRedSocial=IDRedSocial,
                 IDSender=sender_id,
-                IDEL=1,
+                IDEL=find_state_id(1, 'No leído'),
                 Nombre=user_name,
                 nuevos_mensajes=1,
                 Estado=1

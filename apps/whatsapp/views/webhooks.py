@@ -16,6 +16,7 @@ from rest_framework.request import Request
 from ..views.whatsapp_app import WhatsappSendAPIView
 import json
 from rest_framework.parsers import JSONParser
+from apps.utils.find_states import find_state_id
 
 chatbot = ChatbotService()
 
@@ -75,7 +76,7 @@ class WhatsappWebhookAPIView(APIView):
                 IDRedSocial          = setting.IDRedSocial,
                 Nombre               = name if name else phone,
                 Telefono             = phone,
-                IDEL                 = 1,
+                IDEL                 = find_state_id(2, 'No leído'),
                 nuevos_mensajes      = 1,
                 Estado               = 1
             )

@@ -6,10 +6,12 @@ from django.core.files.storage import default_storage
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ..models import ChatInterno, ChatInternoMensaje, ChatInternoConfiguracion, ChatInternoMiembro
+from ..models import ChatInterno, ChatInternoMensaje, ChatInternoMiembro
 from apps.utils.datetime_func import get_naive_peru_time
 from ...utils.pusher_client import pusher_client
 from ..serializers import ChatInternoMiembroSerializer
+from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
+from apps.utils.tokens_phone import get_users_tokens
 
 class ChatInternoSendView(APIView):
     """
@@ -69,6 +71,17 @@ class ChatInternoSendView(APIView):
         )
         serializer = ChatInternoMiembroSerializer(miembros, many=True)
         self._send_realtime_notification(chat, mensaje_obj, serializer.data)
+
+        #push notification
+        firebase_service = FirebaseServiceV1()
+        tokens = get_users_tokens(miembros)
+        if len(tokens) > 0:
+            firebase_service.send_to_multiple_devices(
+                tokens=tokens,
+                title="Nuevo mensaje recibido",
+                body=mensaje_obj.Mensaje,
+                data={'type': 'router', 'route_name': 'ChatInternoPage'}
+            )
 
         return Response({
             'message': 'Mensaje enviado con éxito.',
@@ -186,7 +199,6 @@ class ChatInternoSendView(APIView):
                 'new-message', 
                 {
                     'IDChat': chat.IDChat,
-                    'IDRedSocial': chat.IDRedSocial,
                     'miembros': miembros,
                     'mensaje': {
                         'IDChatMensaje': mensaje.IDChatMensaje,

@@ -1,4 +1,5 @@
 from django.db import connection
+from apps.users.models import UserTokens
 
 # Método alternativo usando SQL raw (más eficiente para consultas complejas)
 def get_user_tokens_by_permissions(permission):
@@ -28,4 +29,13 @@ def get_user_tokens_by_permissions(permission):
         
     except Exception as e:
         return []
+
+def get_users_tokens(miembros):
+    user_ids = [miembro.user_id for miembro in miembros]
+    # Filtrar los UserTokens usando esos user_ids
+    user_tokens = UserTokens.objects.filter(user_id__in=user_ids)
+    # Extraer solo los tokens del resultado
+    tokens = [tokens.token for tokens in user_tokens]
+        
+    return tokens
 

@@ -7,6 +7,7 @@ from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
 from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
+from apps.utils.find_states import find_state_id
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
@@ -68,7 +69,13 @@ class WhatsappShow(APIView):
         # marcar como vistos
         WhatsappMensajes.objects.filter(IDChat=id, Estado=2).update(Estado=3)
         # reset new count
-        Whatsapp.objects.filter(IDChat=id).update(nuevos_mensajes=0)
+        chat = Whatsapp.objects.filter(IDChat=id).first()
+        if chat:
+            chat.nuevos_mensajes = 0
+            if chat.IDEL == find_state_id(2, 'No leído'):
+                chat.IDEL = find_state_id(2, 'Leído')
+            chat.save()
+
         data = WhatsappMensajesSerializer(msgs, many=True).data
         return Response({'data': data})
     

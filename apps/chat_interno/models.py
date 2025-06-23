@@ -2,21 +2,6 @@ from django.db import models
 from apps.redes_sociales.models import Marca
 
 # Create your models here.
-    
-class ChatInternoConfiguracion(models.Model):
-    IDRedSocial = models.IntegerField(primary_key=True, db_column='IDRedSocial', help_text='ID de la Red Social')
-    marca_id     = models.IntegerField(default=1, null=True, blank=True, db_column='marca_id')
-    Nombre       = models.CharField(max_length=50, null=True, blank=True, db_column='Nombre')
-    logo         = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
-    Estado       = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado')
-    permitir_archivos = models.BooleanField(default=True, help_text='Permitir envío de archivos')
-
-    class Meta:
-        db_table = 'chat_interno_configuracion'
-        verbose_name_plural = 'Chat Interno Configuracion'
-
-    def __str__(self):
-        return self.Nombre or f"Config {self.IDRedSocial}"
 
 class ChatInterno(models.Model):
     TIPO_CHAT_CHOICES = [
@@ -25,13 +10,10 @@ class ChatInterno(models.Model):
     ]
      
     IDChat      = models.AutoField(primary_key=True, db_column='IDChat')
-    IDRedSocial = models.IntegerField(default=1, db_column='IDRedSocial')
     Nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True, db_column='updated_at')
     Avatar      = models.CharField(max_length=100, null=True, blank=True, db_column='Avatar')
-    IDEL        = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID estado')
-    IDSubEstadoLead = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead', help_text='ID sub estado')
     Estado      = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
 
     tipo_chat = models.IntegerField(choices=TIPO_CHAT_CHOICES, default=1, help_text='Tipo de chat')
@@ -40,7 +22,6 @@ class ChatInterno(models.Model):
 
     class Meta:
         db_table = 'chat_interno'
-        unique_together = (('IDChat', 'IDRedSocial'),)
         verbose_name_plural = 'Chat Interno Chats'
 
     def __str__(self):
@@ -58,6 +39,7 @@ class ChatInternoMiembro(models.Model):
     rol = models.CharField(max_length=40, choices=ROLES_CHOICES, default='Miembro')
     fecha_union = models.DateTimeField(auto_now_add=True)
     nuevos_mensajes = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
+    IDEL = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID estado')
     
     class Meta:
         db_table = 'chat_interno_miembro'

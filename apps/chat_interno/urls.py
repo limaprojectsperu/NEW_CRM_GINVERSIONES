@@ -1,7 +1,7 @@
 from django.urls import path
 from .views.chat_interno import (
     ChatInternoList, ChatInternoMessages, ChatInternoDestroy,
-    ChatInternoUpdateDate, ChatInternoSettingList, ChatInternoUpdateLead,
+    ChatInternoUpdateDate, ChatInternoUpdateLead,
     ChatInternoChatUpdate, ChatInternoCreate, ChatInternoMiembros
 )
 from .views.chat_interno_app import (
@@ -10,11 +10,10 @@ from .views.chat_interno_app import (
 
 urlpatterns = [
     # Chat interno API básica
-    path('chat-interno/all/<int:id>',              ChatInternoList.as_view()),
+    path('chat-interno/all',                       ChatInternoList.as_view()),
     path('chat-interno/message/<int:id>',          ChatInternoMessages.as_view()),
     path('chat-interno/delete/<int:id>',           ChatInternoDestroy.as_view()),
     path('chat-interno/update-date/<int:id>',      ChatInternoUpdateDate.as_view()),
-    path('chat-interno/setting',                   ChatInternoSettingList.as_view()),
     path('chat-interno/update-lead/<int:id>',      ChatInternoUpdateLead.as_view()),
     path('chat-interno/update-chat/<int:id>',      ChatInternoChatUpdate.as_view()),
     

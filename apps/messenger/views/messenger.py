@@ -11,6 +11,7 @@ from ..serializers import (
     MessengerMensajeSerializer,
     MessengerConfiguracionSerializer
 )
+from apps.utils.find_states import find_state_id
 
 class MessengerList(APIView):
     """
@@ -49,7 +50,14 @@ class MessengerMessages(APIView):
         serializer = MessengerMensajeSerializer(msgs, many=True)
         # Marcar como vistos (2→3)
         MessengerMensaje.objects.filter(IDChat=id, Estado=2).update(Estado=3)
-        Messenger.objects.filter(IDChat=id).update(nuevos_mensajes=0)
+
+        chat = Messenger.objects.filter(IDChat=id).first()
+        if chat:
+            chat.nuevos_mensajes = 0
+            if chat.IDEL == find_state_id(1, 'No leído'):
+                chat.IDEL = find_state_id(1, 'Leído')
+            chat.save()
+            
         return Response({'data': serializer.data})
 
 
