@@ -18,6 +18,13 @@ from corsheaders.defaults import default_headers
 # Cargar variables del archivo .env
 load_dotenv()
 
+# Tamaño máximo de archivos en bytes (100MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+
+# Tamaño máximo total de la solicitud
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -115,7 +122,15 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'userid',
     'idcompany',
+    'content-type',
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'x-requested-with',
 ]
+
+# Configuración para manejar archivos grandes
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 horas
 
 ROOT_URLCONF = 'giconfig.urls'
 

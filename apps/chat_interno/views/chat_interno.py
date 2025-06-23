@@ -180,6 +180,14 @@ class ChatInternoCreate(APIView):
     """
     def post(self, request):
         data = request.data
+
+        hasChatInt = ChatInterno.objects.filter(creado_por=data.get('creado_por'), Nombre=data.get('Nombre')).first()
+        if hasChatInt:
+            return Response({
+                'message': 'Ya existe un chat o grupo con el mismo nombre.',
+                'data': None,
+                'status': 400,
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         # Crear el chat
         chat = ChatInterno.objects.create(
