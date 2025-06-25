@@ -12,6 +12,7 @@ from ..serializers import (
     MessengerConfiguracionSerializer
 )
 from apps.utils.find_states import find_state_id
+from apps.users.views.wasabi import upload_to_wasabi
 
 class MessengerList(APIView):
     """
@@ -124,25 +125,18 @@ class MessengerChatUpdate(APIView):
         
         fichero = request.FILES.get('file')
         if fichero:
-            # Create directory if it doesn't exist
-            # Modificar la ruta para incluir 'media' en la estructura
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            avatar_dir = os.path.join(media_dir, 'messenger', 'avatars')
-            os.makedirs(avatar_dir, exist_ok=True)
-            
-            # Generate file path using only timestamp
-            extension = os.path.splitext(fichero.name)[1]  # Get the file extension
+            # Generar nombre de archivo usando timestamp
+            extension = os.path.splitext(fichero.name)[1]  # Obtener extensión
             filename = f'{int(timezone.now().timestamp())}{extension}'
-            ruta = f'media/messenger/avatars/{filename}'  # Añadir 'media/' al inicio de la ruta
-            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
-            
-            # Save the file
-            with open(full_path, 'wb+') as destino:
-                for chunk in fichero.chunks():
-                    destino.write(chunk)
-                    
-            # Crear la URL correcta con MEDIA_URL
-            m.Avatar = f"{settings.MEDIA_URL.rstrip('/')}/messenger/avatars/{filename}"
+                
+            # Definir la ruta en Wasabi
+            file_path = f'media/messenger/avatars/{filename}'
+                
+            # Subir archivo a Wasabi usando la función auxiliar
+            saved_path = upload_to_wasabi(fichero, file_path)
+
+            # Generar URL para acceder al archivo
+            m.Avatar = f"/{file_path}"
             avatar_path = m.Avatar
             
         m.save()

@@ -39,3 +39,6 @@ def get_users_tokens(miembros):
         
     return tokens
 
+def delete_token(token):
+    UserTokens.objects.filter(token=token).delete()
+

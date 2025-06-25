@@ -8,6 +8,7 @@ from apps.utils.datetime_func import get_naive_peru_time
 from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
 from apps.utils.find_states import find_state_id
+from apps.users.views.wasabi import upload_to_wasabi
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
@@ -112,16 +113,19 @@ class WhatsappUpdate(APIView):
         avatar_url = None
         upload = request.FILES.get('file')
         if upload:
-            # carpeta: MEDIA_ROOT/whatsapp/avatars/<chat_id>/
-            folder = os.path.join(settings.MEDIA_ROOT, 'whatsapp', 'avatars', str(id))
-            os.makedirs(folder, exist_ok=True)
-            ext      = os.path.splitext(upload.name)[1]
-            name     = f"{int(timezone.now().timestamp())}{ext}"
-            path     = os.path.join(folder, name)
-            with open(path, 'wb+') as f:
-                for chunk in upload.chunks():
-                    f.write(chunk)
-            avatar_url = os.path.join(settings.MEDIA_URL, 'whatsapp', 'avatars', str(id), name)
+            # Generar nombre de archivo usando timestamp
+            extension = os.path.splitext(upload.name)[1]  # Obtener extensión
+            filename = f'{int(timezone.now().timestamp())}{extension}'
+                
+            # Definir la ruta en Wasabi
+            file_path = f'media/whatsapp/avatars/{filename}'
+                
+            # Subir archivo a Wasabi usando la función auxiliar
+            saved_path = upload_to_wasabi(upload, file_path)
+
+            # Generar URL para acceder al archivo
+            avatar_url= f"/{file_path}"
+
             Whatsapp.objects.filter(IDChat=id).update(Avatar=avatar_url)
 
         return Response({'message': 'Perfil actualizado con éxito.', 'data': avatar_url})

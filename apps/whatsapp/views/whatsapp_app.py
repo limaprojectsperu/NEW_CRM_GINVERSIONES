@@ -7,9 +7,9 @@ from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status
-
 from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
 from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
+from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
 
 class WhatsappSendAPIView(APIView):
     """
@@ -142,53 +142,26 @@ class WhatsappSendAPIView(APIView):
 
     def _send_media_from_url(self, request, url_file):
         """
-        Envía archivo a WhatsApp API desde URL local del servidor Django.
+        Envía archivo a WhatsApp API desde URL usando get_wasabi_file_data unificado.
         """
         try:
-            # Construir ruta completa del archivo
-            if os.path.isabs(url_file):
-                file_path = url_file
-            else:
-                # url_file viene como "/media/whatsapp/plantillas/file.jpg"
-                clean_path = url_file.lstrip('/')
-                file_path = os.path.join(settings.MEDIA_ROOT, clean_path)
+            # Usar la función unificada para obtener el archivo
+            file_result = get_wasabi_file_data(url_file)
             
-            # Normalizar y verificar que existe
-            file_path = os.path.normpath(file_path)
-            
-            if not os.path.exists(file_path):
+            if not file_result['success']:
                 return {
                     'status_code': 404,
                     'response': {
-                        'error': f'Archivo no encontrado: {file_path}',
+                        'error': file_result['error'],
                         'url_received': url_file,
+                        'source_checked': file_result['source']
                     },
                     'path': url_file
                 }
 
-            # Leer archivo desde disco
-            with open(file_path, 'rb') as f:
-                file_data = f.read()
-                
-            # Obtener información del archivo
-            filename = os.path.basename(file_path)
-            file_extension = os.path.splitext(filename)[1].lower()
-            
-            # Determinar content_type basado en la extensión
-            content_type_map = {
-                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.png': 'image/png', '.gif': 'image/gif',
-                '.mp4': 'video/mp4', '.avi': 'video/avi',
-                '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
-                '.pdf': 'application/pdf',
-                '.doc': 'application/msword',
-                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            }
-            content_type = content_type_map.get(file_extension, 'application/octet-stream')
-
             # Request multipart a WhatsApp API
             files = {
-                'file': (filename, file_data, content_type),
+                'file': (file_result['filename'], file_result['file_data'], file_result['content_type']),
             }
             data_form = {
                 'messaging_product': 'whatsapp',
@@ -205,7 +178,8 @@ class WhatsappSendAPIView(APIView):
             return {
                 'status_code': resp.status_code,
                 'response': resp.json() if resp.text else {},
-                'path': url_file  # Retornar la URL original
+                'path': url_file,
+                'source': file_result['source']  # Incluir fuente del archivo
             }
             
         except Exception as e:
@@ -214,19 +188,14 @@ class WhatsappSendAPIView(APIView):
                 'response': {'error': f'Error procesando archivo: {str(e)}'},
                 'path': url_file
             }
-
+        
     def _send_media_from_upload(self, request, upload):
         """
-        Maneja archivos subidos via FormData - CORREGIDO con método de guardado que funciona
+        Maneja archivos subidos via FormData - ACTUALIZADO para guardar en Wasabi
         """
         try:
             # Obtener teléfono para crear la estructura de carpetas
             telefono = request.data.get("Telefono", "unknown")
-            
-            # Crear la carpeta si no existe (usando el método que funciona)
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            folder_path = os.path.join(media_dir, 'whatsapp', telefono)
-            os.makedirs(folder_path, exist_ok=True)
             
             # Generar nombre único para el archivo
             timestamp = int(timezone.now().timestamp())
@@ -234,12 +203,13 @@ class WhatsappSendAPIView(APIView):
             filename = f'{timestamp}{extension}'
             rel_path = f'media/whatsapp/{telefono}/{filename}'
             
-            # Resetear puntero del archivo para leer para WhatsApp API
+            # Leer el archivo una sola vez
             upload.seek(0)
+            file_data = upload.read()
             
             # Enviar a WhatsApp API
             files = {
-                'file': (upload.name, upload.read(), upload.content_type),
+                'file': (upload.name, file_data, upload.content_type),
             }
             data_form = {
                 'messaging_product': 'whatsapp',
@@ -253,23 +223,33 @@ class WhatsappSendAPIView(APIView):
                             headers=headers,
                             timeout=60)
             
-            # Reiniciar el puntero del archivo para guardarlo localmente
-            upload.seek(0)
-            default_storage.save(rel_path, upload)
+            # Guardar archivo en Wasabi
+            wasabi_result = save_file_to_wasabi(file_data, rel_path, upload.content_type)
             
-            return {
+            # Construir URL de respuesta
+            file_url = f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/{telefono}/{filename}"
+            
+            response_data = {
                 'status_code': resp.status_code,
                 'response': resp.json() if resp.text else {},
-                'path': f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/{telefono}/{filename}"
+                'path': file_url,
+                'storage': 'wasabi' if wasabi_result['success'] else 'failed'
             }
+            
+            # Agregar información de error si falló el guardado en Wasabi
+            if not wasabi_result['success']:
+                response_data['storage_error'] = wasabi_result['error']
+            
+            return response_data
             
         except Exception as e:
             return {
                 'status_code': 500,
                 'response': {'error': f'Error subiendo archivo: {str(e)}'},
-                'path': None
+                'path': None,
+                'storage': 'error'
             }
-    
+
     def _build_template_payload(self, to_phone):
         """Construye payload para plantilla"""
         return json.dumps({

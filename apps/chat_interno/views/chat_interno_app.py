@@ -12,6 +12,7 @@ from ...utils.pusher_client import pusher_client
 from ..serializers import ChatInternoMiembroSerializer
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.tokens_phone import get_users_tokens
+from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
 
 class ChatInternoSendView(APIView):
     """
@@ -66,9 +67,7 @@ class ChatInternoSendView(APIView):
         chat.save()
         
         # Enviar notificación en tiempo real
-        miembros = ChatInternoMiembro.objects.filter(
-            chat_interno_id=chat_id
-        )
+        miembros = ChatInternoMiembro.objects.filter(chat_interno_id=chat_id).exclude(user_id=sender_id)
         serializer = ChatInternoMiembroSerializer(miembros, many=True)
         self._send_realtime_notification(chat, mensaje_obj, serializer.data)
 
@@ -102,12 +101,18 @@ class ChatInternoSendView(APIView):
 
     def _process_file(self, request, chat_id, sender_id):
         """
-        Procesa archivos adjuntos (subidos o desde URL)
+        Procesa archivos adjuntos (subidos o desde URL) - VERSION MEJORADA
         """
         # Verificar si es URL de archivo local
         url_file = request.data.get('urlFile')
         if url_file:
-            return self._process_file_from_url(url_file)
+            result = self._process_file_from_url(url_file)
+            if result['success']:
+                return url_file
+            else:
+                # Log del error si es necesario
+                print(f"Error procesando archivo desde URL: {result['error']}")
+                return None
         
         # Procesar archivo subido
         upload = request.FILES.get('file')
@@ -118,46 +123,63 @@ class ChatInternoSendView(APIView):
 
     def _process_file_from_url(self, url_file):
         """
-        Valida que el archivo de la URL existe
+        Valida que el archivo de la URL existe usando get_wasabi_file_data unificado.
         """
         try:
-            if os.path.isabs(url_file):
-                file_path = url_file
-            else:
-                clean_path = url_file.lstrip('/')
-                file_path = os.path.join(settings.MEDIA_ROOT, clean_path)
+            file_result = get_wasabi_file_data(url_file)
             
-            file_path = os.path.normpath(file_path)
-            
-            if os.path.exists(file_path):
-                return url_file
+            if file_result['success']:
+                return {
+                    'success': True,
+                    'url': url_file,
+                    'source': file_result['source'],
+                    'filename': file_result['filename'],
+                    'content_type': file_result['content_type']
+                }
             else:
-                return None
-        except Exception:
-            return None
+                return {
+                    'success': False,
+                    'error': file_result['error'],
+                    'source': file_result['source']
+                }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Error validando archivo: {str(e)}',
+                'source': 'error'
+            }
 
     def _process_uploaded_file(self, upload, chat_id, sender_id):
         """
-        Guarda archivo subido en el servidor
+        Guarda archivo subido en Wasabi - ACTUALIZADO
         """
         try:
-            # Crear directorio para archivos del chat
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            chat_dir = os.path.join(media_dir, 'chat_interno', 'archivos', str(chat_id))
-            os.makedirs(chat_dir, exist_ok=True)
-            
             # Generar nombre único para el archivo
-            extension = os.path.splitext(upload.name)[1]
-            filename = f'{int(timezone.now().timestamp())}{extension}'
+            timestamp = int(timezone.now().timestamp())
+            extension = os.path.splitext(upload.name)[1] if upload.name else ''
+            filename = f'{timestamp}{extension}'
             rel_path = f'media/chat_interno/archivos/{chat_id}/{filename}'
             
-            # Guardar archivo
-            default_storage.save(rel_path, upload)
+            # Leer el archivo
+            upload.seek(0)
+            file_data = upload.read()
             
-            return f"{settings.MEDIA_URL.rstrip('/')}/chat_interno/archivos/{chat_id}/{filename}"
-        except Exception:
+            # Guardar archivo en Wasabi
+            wasabi_result = save_file_to_wasabi(file_data, rel_path, upload.content_type)
+            
+            if wasabi_result['success']:
+                # Construir URL de respuesta
+                file_url = f"{settings.MEDIA_URL.rstrip('/')}/chat_interno/archivos/{chat_id}/{filename}"
+                return file_url
+            else:
+                # Log del error si es necesario
+                print(f"Error guardando archivo en Wasabi: {wasabi_result['error']}")
+                return None
+                
+        except Exception as e:
+            print(f"Error procesando archivo subido: {str(e)}")
             return None
-
+            
     def _save_message(self, request, file_url=None):
         """
         Guarda el mensaje en la base de datos

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from apps.utils.datetime_func  import get_naive_peru_time
+from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
 
 class MessengerSendView(APIView):
     """
@@ -112,54 +113,22 @@ class MessengerSendView(APIView):
 
     def _send_media_from_url(self, request, url_file):
         """
-        Envía archivo a Facebook desde URL local del servidor Django.
+        Envía archivo a Facebook desde URL usando get_wasabi_file_data unificado.
         """
         try:
-            # Construir ruta completa del archivo
-            # Basándose en MEDIA_ROOT = BASE_DIR y MEDIA_URL = '/media/'
-            if os.path.isabs(url_file):
-                # Si es ruta absoluta, usarla directamente
-                file_path = url_file
-            else:
-                # url_file viene como "/media/messenger/plantillas/file.jpg"
-                # Como MEDIA_ROOT = BASE_DIR, necesitamos quitar solo la primera barra
-                clean_path = url_file.lstrip('/')
-                file_path = os.path.join(settings.MEDIA_ROOT, clean_path)
+            # Usar la función unificada para obtener el archivo
+            file_result = get_wasabi_file_data(url_file)
             
-            # Normalizar la ruta
-            file_path = os.path.normpath(file_path)
-            
-            if not os.path.exists(file_path):
+            if not file_result['success']:
                 return {
                     'status_code': 404,
                     'response': {
-                        'error': f'Archivo no encontrado: {file_path}',
+                        'error': file_result['error'],
                         'url_received': url_file,
-                        'media_root': str(settings.MEDIA_ROOT),
-                        'base_dir': str(settings.BASE_DIR)
+                        'source_checked': file_result['source']
                     },
                     'path': url_file
                 }
-
-            # Leer archivo desde disco
-            with open(file_path, 'rb') as f:
-                file_data = f.read()
-                
-            # Obtener información del archivo
-            filename = os.path.basename(file_path)
-            file_extension = os.path.splitext(filename)[1].lower()
-            
-            # Determinar content_type basado en la extensión
-            content_type_map = {
-                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.png': 'image/png', '.gif': 'image/gif',
-                '.mp4': 'video/mp4', '.avi': 'video/avi',
-                '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
-                '.pdf': 'application/pdf',
-                '.doc': 'application/msword',
-                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            }
-            content_type = content_type_map.get(file_extension, 'application/octet-stream')
 
             # Request multipart a Facebook
             multipart = {
@@ -169,7 +138,7 @@ class MessengerSendView(APIView):
                         'payload': {'is_reusable': True}
                     }
                 }), 'application/json'),
-                'filedata': (filename, file_data, content_type),
+                'filedata': (file_result['filename'], file_result['file_data'], file_result['content_type']),
                 'type': (None, request.data.get('typeMedia')),
             }
             headers = {'Authorization': f'Bearer {self.token}'}
@@ -177,12 +146,12 @@ class MessengerSendView(APIView):
             resp = requests.post(f'{self.url_api}/message_attachments',
                                  files=multipart,
                                  headers=headers)
-            data = resp.json()
-
+            
             return {
                 'status_code': resp.status_code,
-                'response': data,
-                'path': url_file  # Retornar la URL original
+                'response': resp.json() if resp.text else {},
+                'path': url_file,
+                'source': file_result['source']  # Incluir fuente del archivo
             }
             
         except Exception as e:
@@ -192,50 +161,66 @@ class MessengerSendView(APIView):
                 'path': url_file
             }
 
-
     def _send_media_from_upload(self, request, upload):
         """
-        Comportamiento original: subir archivo desde FormData.
+        Comportamiento original: subir archivo desde FormData - ACTUALIZADO para guardar en Wasabi.
         """
-        # Request multipart a FB
-        multipart = {
-            'message': (None, json.dumps({
-                'attachment': {
-                    'type': request.data.get('type'),
-                    'payload': {'is_reusable': True}
-                }
-            }), 'application/json'),
-            'filedata': (upload.name, upload.read(), upload.content_type),
-            'type': (None, request.data.get('typeMedia')),
-        }
-        headers = {'Authorization': f'Bearer {self.token}'}
+        try:
+            # Leer el archivo una sola vez
+            upload.seek(0)
+            file_data = upload.read()
+            
+            # Request multipart a FB
+            multipart = {
+                'message': (None, json.dumps({
+                    'attachment': {
+                        'type': request.data.get('type'),
+                        'payload': {'is_reusable': True}
+                    }
+                }), 'application/json'),
+                'filedata': (upload.name, file_data, upload.content_type),
+                'type': (None, request.data.get('typeMedia')),
+            }
+            headers = {'Authorization': f'Bearer {self.token}'}
 
-        resp = requests.post(f'{self.url_api}/message_attachments',
-                             files=multipart,
-                             headers=headers)
-        data = resp.json()
+            resp = requests.post(f'{self.url_api}/message_attachments',
+                                 files=multipart,
+                                 headers=headers)
+            data = resp.json()
 
-        # Crear la carpeta si no existe
-        sender_id = request.data.get("IDSender")
-        media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-        folder_path = os.path.join(media_dir, 'messenger', sender_id)
-        os.makedirs(folder_path, exist_ok=True)
-        
-        # Guardar archivo en disco usando solo el timestamp
-        extension = os.path.splitext(upload.name)[1]
-        filename = f'{int(timezone.now().timestamp())}{extension}'
-        rel_path = f'media/messenger/{sender_id}/{filename}'
-        
-        # Reiniciar el puntero del archivo ya que se leyó en el multipart
-        upload.seek(0)
-        default_storage.save(rel_path, upload)
-
-        return {
-            'status_code': resp.status_code,
-            'response': data,
-            'path': f"{settings.MEDIA_URL.rstrip('/')}/messenger/{sender_id}/{filename}"
-        }
-
+            # Crear nombre de archivo y ruta para Wasabi
+            sender_id = request.data.get("IDSender", "unknown")
+            timestamp = int(timezone.now().timestamp())
+            extension = os.path.splitext(upload.name)[1] if upload.name else ''
+            filename = f'{timestamp}{extension}'
+            rel_path = f'media/messenger/{sender_id}/{filename}'
+            
+            # Guardar archivo en Wasabi
+            wasabi_result = save_file_to_wasabi(file_data, rel_path, upload.content_type)
+            
+            # Construir URL de respuesta
+            file_url = f"{settings.MEDIA_URL.rstrip('/')}/messenger/{sender_id}/{filename}"
+            
+            response_data = {
+                'status_code': resp.status_code,
+                'response': data,
+                'path': file_url,
+                'storage': 'wasabi' if wasabi_result['success'] else 'failed'
+            }
+            
+            # Agregar información de error si falló el guardado en Wasabi
+            if not wasabi_result['success']:
+                response_data['storage_error'] = wasabi_result['error']
+            
+            return response_data
+            
+        except Exception as e:
+            return {
+                'status_code': 500,
+                'response': {'error': f'Error procesando archivo: {str(e)}'},
+                'path': None,
+                'storage': 'error'
+            }
 
     def _build_payload(self, recipient_id, msg_type, text='', media=None):
         """

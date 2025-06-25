@@ -64,6 +64,46 @@ PUSHER_CLUSTER     = os.getenv('PUSHER_CLUSTER')
 # OPENAI
 OPENAI_API_KEY      = os.getenv('OPENAI_API_KEY')
 
+# Configuración de Wasabi
+WASABI_ACCESS_KEY_ID = os.getenv('WAS_ACCESS_KEY_ID')
+WASABI_SECRET_ACCESS_KEY = os.getenv('WAS_SECRET_ACCESS_KEY')
+WASABI_DEFAULT_REGION = os.getenv('WAS_DEFAULT_REGION')
+WASABI_BUCKET = os.getenv('WAS_BUCKET')
+WASABI_ENDPOINT_URL = os.getenv('WAS_URL')
+
+# Configuración de AWS/S3 para Django-storages
+AWS_ACCESS_KEY_ID = WASABI_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY = WASABI_SECRET_ACCESS_KEY
+AWS_STORAGE_BUCKET_NAME = WASABI_BUCKET
+AWS_S3_ENDPOINT_URL = WASABI_ENDPOINT_URL
+AWS_S3_REGION_NAME = WASABI_DEFAULT_REGION
+AWS_DEFAULT_ACL = None
+AWS_S3_CUSTOM_DOMAIN = None
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_S3_FILE_OVERWRITE = False
+
+# Configuración de almacenamiento personalizado
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Si quieres usar un storage personalizado
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        'OPTIONS': {
+            'access_key': WASABI_ACCESS_KEY_ID,
+            'secret_key': WASABI_SECRET_ACCESS_KEY,
+            'bucket_name': WASABI_BUCKET,
+            'region_name': WASABI_DEFAULT_REGION,
+            'endpoint_url': WASABI_ENDPOINT_URL,
+        }
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [

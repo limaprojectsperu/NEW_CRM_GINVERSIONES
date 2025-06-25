@@ -12,6 +12,7 @@ from ..serializers import (
     ChatInternoMiembroSerializer
 )
 from apps.utils.find_states import find_state_id
+from apps.users.views.wasabi import upload_to_wasabi
 
 class ChatInternoList(APIView):
     """
@@ -22,7 +23,7 @@ class ChatInternoList(APIView):
         IDEL = int(request.data.get('IDEL', -1))
         tipo_chat = int(request.data.get('tipo_chat', 0))
         search_text = request.data.get('searchMessage', '').strip()
-        user_id = request.data.get('user_id')  # Para filtrar chats donde el usuario es miembro
+        user_id = request.data.get('user_id', -1)  # Para filtrar chats donde el usuario es miembro
 
         qs = ChatInterno.objects.filter(Estado=1)
         
@@ -30,7 +31,7 @@ class ChatInternoList(APIView):
             qs = qs.filter(tipo_chat=tipo_chat)
 
         # Filtrar por usuario si se proporciona
-        if user_id:
+        if user_id > 0:
             chats_miembro = ChatInternoMiembro.objects.filter(
                 user_id=user_id
             )
@@ -145,24 +146,18 @@ class ChatInternoChatUpdate(APIView):
         # Procesar archivo de avatar si existe
         fichero = request.FILES.get('file')
         if fichero:
-            # Crear directorio si no existe
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            avatar_dir = os.path.join(media_dir, 'chat_interno', 'avatars')
-            os.makedirs(avatar_dir, exist_ok=True)
-            
-            # Generar nombre de archivo con timestamp
-            extension = os.path.splitext(fichero.name)[1]
+            # Generar nombre de archivo usando timestamp
+            extension = os.path.splitext(fichero.name)[1]  # Obtener extensión
             filename = f'{int(timezone.now().timestamp())}{extension}'
-            ruta = f'media/chat_interno/avatars/{filename}'
-            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
-            
-            # Guardar el archivo
-            with open(full_path, 'wb+') as destino:
-                for chunk in fichero.chunks():
-                    destino.write(chunk)
-                    
-            # Crear la URL correcta con MEDIA_URL
-            chat.Avatar = f"{settings.MEDIA_URL.rstrip('/')}/chat_interno/avatars/{filename}"
+                
+            # Definir la ruta en Wasabi
+            file_path = f'media/chat_interno/avatars/{filename}'
+                
+            # Subir archivo a Wasabi usando la función auxiliar
+            saved_path = upload_to_wasabi(fichero, file_path)
+
+            # Generar URL para acceder al archivo
+            chat.Avatar = f"/{file_path}"
             avatar_path = chat.Avatar
             
         chat.save()

@@ -4,7 +4,7 @@ from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from django.conf import settings
 import os
-
+from apps.utils.tokens_phone import delete_token
 
 class FirebaseServiceV1:
     def __init__(self):
@@ -70,6 +70,7 @@ class FirebaseServiceV1:
             if 'error' in response:
                 if (response['error']['code'] == 404 or 
                     'InvalidToken' in response['error']['message']):
+                    delete_token(token)
                     return {
                         'error': 'Token no encontrado o inválido', 
                         'token': token

@@ -3,9 +3,9 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-
 from ..models import Niveles, WhatsappMensajes, ChatNiveles
 from ..serializers import NivelSerializer
+from apps.users.views.wasabi import upload_to_wasabi
 
 class NivelViewSet(viewsets.ViewSet):
     """
@@ -108,6 +108,41 @@ class NivelViewSet(viewsets.ViewSet):
         return Response({'message': 'Nivel desactivado exitosamente.'})
 
     def save_image(self, request, pk=None):
+        """
+        POST /api/level/<pk>/save-image/
+        Guarda archivo en Wasabi y actualiza URLImagen
+        """
+        nivel = Niveles.objects.get(IDNivel=pk)
+        upload = request.FILES.get('URLImagen')
+        URLImagen = None
+        
+        if upload:
+            try:
+                # Generar nombre de archivo usando timestamp
+                extension = os.path.splitext(upload.name)[1]  # Obtener extensión
+                filename = f'{int(timezone.now().timestamp())}{extension}'
+                
+                # Definir la ruta en Wasabi
+                file_path = f'media/nivel/{filename}'
+                
+                # Subir archivo a Wasabi usando la función auxiliar
+                saved_path = upload_to_wasabi(upload, file_path)
+                
+                # Generar URL para acceder al archivo
+                nivel.URLImagen = f"/{file_path}"
+                
+                nivel.save()
+                URLImagen = nivel.URLImagen
+                
+            except Exception as e:
+                return Response({
+                    'message': 'Error al subir imagen',
+                    'error': str(e)
+                }, status=500)
+
+        return Response({'message': 'ok', 'data': URLImagen})
+    
+    def save_image_original_local(self, request, pk=None):
         """
         POST /api/level/<pk>/save-image/
         Guarda archivo en MEDIA_ROOT/media/nivel/ y actualiza URLImagen

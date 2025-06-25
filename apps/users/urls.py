@@ -1,9 +1,10 @@
-from django.urls import path
+from django.urls import path, re_path
 from .views.users import UsersViewSet 
 from .views.user_tokens import UserTokensViewSet 
 from .views.permissions import PermissionsViewSet 
 from .views.perfiles import PerfilesViewSet 
 from .views.perfil_permissions import PerfilPermissionsViewSet 
+from .views.wasabi import WasabiFileHandler, WasabiFileUpload
 
 urlpatterns = [
      # URLs para Users
@@ -55,4 +56,20 @@ urlpatterns = [
         'put': 'update',
         'delete': 'destroy'
     }), name='perfil-permissions-detail'),
+
+    # Ruta específica para URLs pre-firmadas (redirección), imagenes
+    re_path(
+        r'^img/(?P<path>[^/]+)/?(?P<path2>[^/]+)?/?(?P<path3>[^/]+)?/?(?P<path4>[^/]+)?/?(?P<file>[^/]+)?/?$',
+        WasabiFileHandler.as_view(),
+        {'action': 'redirect'},
+        name='wasabi_image'
+    ),
+    # Para PDFs específicamente
+    re_path(
+        r'^file/(?P<path>[^/]+)/?(?P<path2>[^/]+)?/?(?P<path3>[^/]+)?/?(?P<path4>[^/]+)?/?(?P<file>[^/]+)?/?$',
+        WasabiFileHandler.as_view(),
+        name='wasabi_file'
+    ),
+    # Ruta para subir archivos
+    path('files/upload/', WasabiFileUpload.as_view(), name='wasabi_upload'),
 ]

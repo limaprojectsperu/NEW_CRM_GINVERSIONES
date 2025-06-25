@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from ..models import MessengerPlantilla
 from ..serializers import MessengerPlantillaSingleSerializer, MessengerPlantillaSerializer
+from apps.users.views.wasabi import upload_to_wasabi
 
 class MessengerPlantillaViewSet(viewsets.ViewSet):
     """GET /api/messenger-plantillas-all/ """
@@ -28,24 +29,16 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
         
         # Si hay archivo, procesarlo
         if archivo:
-            # Crear directorios si no existen
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            plantilla_dir = os.path.join(media_dir, 'messenger', 'plantillas')
-            os.makedirs(plantilla_dir, exist_ok=True)
-            
             # Generar nombre de archivo usando timestamp
             extension = os.path.splitext(archivo.name)[1]  # Obtener extensión
             filename = f'{int(timezone.now().timestamp())}{extension}'
-            ruta = f'media/messenger/plantillas/{filename}'  # Ruta relativa
-            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
-            
-            # Guardar el archivo
-            with open(full_path, 'wb+') as destino:
-                for chunk in archivo.chunks():
-                    destino.write(chunk)
-            
-            # Crear la URL correcta con MEDIA_URL
-            data['url'] = f"{settings.MEDIA_URL.rstrip('/')}/messenger/plantillas/{filename}"
+                
+            # Definir la ruta en Wasabi
+            file_path = f'media/messenger/plantillas/{filename}' 
+            # Subir archivo a Wasabi usando la función auxiliar
+            saved_path = upload_to_wasabi(archivo, file_path)
+            # Generar URL para acceder al archivo
+            data['url'] = f"/{file_path}"
         
         serializer = MessengerPlantillaSerializer(data=data)
         if serializer.is_valid():
@@ -67,32 +60,16 @@ class MessengerPlantillaViewSet(viewsets.ViewSet):
         
         # Si hay nuevo archivo, procesarlo
         if archivo:
-            # Eliminar archivo anterior si existe
-            if plantilla.url:
-                # Extraer el path del archivo anterior
-                old_filename = os.path.basename(plantilla.url)
-                old_path = os.path.join(settings.MEDIA_ROOT, 'media', 'messenger', 'plantillas', old_filename)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
-            
-            # Crear directorios si no existen
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'media')
-            plantilla_dir = os.path.join(media_dir, 'messenger', 'plantillas')
-            os.makedirs(plantilla_dir, exist_ok=True)
-            
             # Generar nombre de archivo usando timestamp
             extension = os.path.splitext(archivo.name)[1]  # Obtener extensión
             filename = f'{int(timezone.now().timestamp())}{extension}'
-            ruta = f'media/messenger/plantillas/{filename}'  # Ruta relativa
-            full_path = os.path.join(settings.MEDIA_ROOT, ruta)
-            
-            # Guardar el archivo
-            with open(full_path, 'wb+') as destino:
-                for chunk in archivo.chunks():
-                    destino.write(chunk)
-            
-            # Crear la URL correcta con MEDIA_URL
-            data['url'] = f"{settings.MEDIA_URL.rstrip('/')}/messenger/plantillas/{filename}"
+                
+            # Definir la ruta en Wasabi
+            file_path = f'media/messenger/plantillas/{filename}' 
+            # Subir archivo a Wasabi usando la función auxiliar
+            saved_path = upload_to_wasabi(archivo, file_path)
+            # Generar URL para acceder al archivo
+            data['url'] = f"/{file_path}"
         
         serializer = MessengerPlantillaSerializer(plantilla, data=data, partial=True)
         if serializer.is_valid():
