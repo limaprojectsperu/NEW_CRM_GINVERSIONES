@@ -77,8 +77,8 @@ class ChatInternoSendView(APIView):
         if len(tokens) > 0:
             firebase_service.send_to_multiple_devices(
                 tokens=tokens,
-                title="Nuevo mensaje recibido",
-                body=mensaje_obj.Mensaje,
+                title="Chat Interno recibido",
+                body=mensaje_obj.Mensaje if mensaje_obj.Mensaje else 'Archivo recibido',
                 data={'type': 'router', 'route_name': 'ChatInternoPage'}
             )
 
