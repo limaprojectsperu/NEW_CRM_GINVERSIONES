@@ -16,6 +16,7 @@ class WhatsappConfiguracion(models.Model):
     logo        = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
     Estado      = models.IntegerField(default=1, db_column='Estado', help_text='Estado del telefono asociado')
     openai      = models.BooleanField(default=False) 
+    openai_analizador = models.BooleanField(default=True) 
 
     class Meta:
         db_table = 'whatsapp_configuracion'

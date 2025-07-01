@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/', include('apps.messenger.urls')),
     path('api/', include('apps.whatsapp.urls')),
     path('api/', include('apps.chat_interno.urls')),
+    path('api/', include('apps.openai.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=os.path.join(settings.MEDIA_ROOT, 'media'))

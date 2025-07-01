@@ -71,5 +71,6 @@ urlpatterns = [
         name='wasabi_file'
     ),
     # Ruta para subir archivos
-    path('files/upload/', WasabiFileUpload.as_view(), name='wasabi_upload'),
+    path('files/upload', WasabiFileUpload.as_view(), name='wasabi_upload'),
+
 ]
