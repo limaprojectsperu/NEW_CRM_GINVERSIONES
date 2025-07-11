@@ -41,6 +41,7 @@ class WhatsappSendAPIView(APIView):
         text    = data.get('Mensaje', '')
         result  = None
         media   = None
+        msjPlantilla = None
 
         # 3) Buscar chat reciente para plantilla
         chat = Whatsapp.objects.filter(
@@ -57,6 +58,7 @@ class WhatsappSendAPIView(APIView):
                 Whatsapp.objects.filter(IDChat=data.get('IDChat')).update(
                     FechaUltimaPlantilla=get_naive_peru_time()
                 )
+                msjPlantilla = "Ya pasaron más de 24 horas desde el ultimo mensaje, por ello se envió una plantilla."
         else:
             # 5) Procesar media (subida o URL)
             media = self._send_media(request)
@@ -74,7 +76,7 @@ class WhatsappSendAPIView(APIView):
         if media:
             file_url = media.get('path')
         
-        saved = self._save_message(request, file_url)
+        saved = self._save_message(request, file_url, msjPlantilla)
 
         return JsonResponse({
             'message': 'Mensaje enviado con éxito.',
@@ -291,12 +293,12 @@ class WhatsappSendAPIView(APIView):
             media_type: media_content
         })
 
-    def _save_message(self, request, url=None):
+    def _save_message(self, request, url=None, msjPlantilla=None):
         """Guarda mensaje en la BD"""
         msg = WhatsappMensajes.objects.create(
             IDChat    = request.data.get('IDChat'),
             Telefono  = request.data.get('Telefono'),
-            Mensaje   = request.data.get('Mensaje'),
+            Mensaje   = msjPlantilla if msjPlantilla else request.data.get('Mensaje'),
             Fecha     = request.data.get('Fecha'),
             Hora      = request.data.get('Hora'),
             Url       = url,

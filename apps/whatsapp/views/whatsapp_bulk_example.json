@@ -1,0 +1,143 @@
+{
+  "ejemplo_1_plantilla_con_media_automatica": {
+    "descripcion": "Envío de plantilla con media automático desde carpeta media",
+    "endpoint": "POST /api/whatsapp-app/send-bulk-message/",
+    "prerequisitos": [
+      "1. Crear plantilla en WhatsappMetaPlantillas con media_url = 'promocion.jpg'",
+      "2. Colocar archivo en: media/media/promocion.jpg",
+      "3. Configurar tipo = 'image' en la plantilla (opcional)"
+    ],
+    "body": {
+      "IDRedSocial": 1,
+      "tokenHook": "tu_token_hook",
+      "template_name": "promocion_con_imagen",
+      "phone_numbers": [
+        "51987654321",
+        "51123456789"
+      ],
+      "template_params": [
+        ["Juan", "20%"],
+        ["María", "15%"]
+      ],
+      "save_message": true
+    },
+    "nota": "No necesitas proporcionar media_id ni media_type. El sistema lo hace automáticamente."
+  },
+  
+  "ejemplo_2_plantilla_con_video": {
+    "descripcion": "Envío de plantilla con video automático",
+    "endpoint": "POST /api/whatsapp-app/send-bulk-message/",
+    "prerequisitos": [
+      "1. Crear plantilla con media_url = 'video_promocional.mp4'",
+      "2. Colocar archivo en: media/media/video_promocional.mp4",
+      "3. Configurar tipo = 'video' en la plantilla"
+    ],
+    "body": {
+      "IDRedSocial": 1,
+      "tokenHook": "tu_token_hook",
+      "template_name": "video_promocional",
+      "phone_numbers": [
+        "51987654321"
+      ],
+      "template_params": [
+        ["Cliente Premium", "Nuevos productos"]
+      ],
+      "save_message": true
+    }
+  },
+  
+  "ejemplo_3_plantilla_con_documento": {
+    "descripcion": "Envío de plantilla con documento PDF",
+    "endpoint": "POST /api/whatsapp-app/send-bulk-message/",
+    "prerequisitos": [
+      "1. Crear plantilla con media_url = 'catalogo.pdf'",
+      "2. Colocar archivo en: media/media/catalogo.pdf",
+      "3. Configurar tipo = 'document' en la plantilla"
+    ],
+    "body": {
+      "IDRedSocial": 1,
+      "tokenHook": "tu_token_hook",
+      "template_name": "envio_catalogo",
+      "phone_numbers": [
+        "51987654321",
+        "51123456789"
+      ],
+      "template_params": [
+        ["Catálogo Marzo 2024"],
+        ["Catálogo Marzo 2024"]
+      ],
+      "save_message": true
+    }
+  },
+  
+  "ejemplo_4_override_media_manual": {
+    "descripcion": "Sobrescribir media automático con media_id manual",
+    "endpoint": "POST /api/whatsapp-app/send-bulk-message/",
+    "body": {
+      "IDRedSocial": 1,
+      "tokenHook": "tu_token_hook",
+      "template_name": "plantilla_con_media_url",
+      "phone_numbers": [
+        "51987654321"
+      ],
+      "media_id": "1234567890",
+      "media_type": "image",
+      "save_message": true
+    },
+    "nota": "Si proporcionas media_id, se usará ese en lugar del archivo automático"
+  },
+  
+  "respuesta_exitosa_con_media": {
+    "message": "Procesamiento de mensajes en bloque completado.",
+    "results": [
+      {
+        "phone": "51987654321",
+        "success": true,
+        "message": "Mensaje enviado exitosamente",
+        "whatsapp_id": "wamid.xxxxx",
+        "status_code": 200
+      }
+    ],
+    "template_media_uploaded": true,
+    "media_id": "1234567890",
+    "summary": {
+      "total": 1,
+      "success": 1,
+      "failed": 0
+    },
+    "status": 200
+  },
+  
+  "configuracion_plantilla_ejemplo": {
+    "descripcion": "Ejemplo de configuración en WhatsappMetaPlantillas",
+    "modelo": "WhatsappMetaPlantillas",
+    "datos": {
+      "nombre": "promocion_imagen",
+      "descripcion": "Plantilla con imagen promocional",
+      "lenguaje": "es",
+      "media_url": "promociones/oferta_marzo.jpg",
+      "tipo": "image",
+      "estado": 1
+    },
+    "archivo_ubicacion": "media/media/promociones/oferta_marzo.jpg"
+  },
+  
+  "tipos_media_soportados": {
+    "image": {
+      "extensiones": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+      "content_types": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    },
+    "video": {
+      "extensiones": [".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm"],
+      "content_types": ["video/mp4", "video/x-msvideo", "video/quicktime", "video/x-ms-wmv", "video/x-flv", "video/webm"]
+    },
+    "audio": {
+      "extensiones": [".mp3", ".wav", ".aac", ".ogg", ".m4a"],
+      "content_types": ["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg", "audio/mp4"]
+    },
+    "document": {
+      "extensiones": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
+      "content_types": ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    }
+  }
+}

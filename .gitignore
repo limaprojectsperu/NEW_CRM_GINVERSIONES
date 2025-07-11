@@ -39,5 +39,6 @@ Thumbs.db
 #Archivos estaticos
 media/*
 !media/logo/
+!media/templates/
 
 

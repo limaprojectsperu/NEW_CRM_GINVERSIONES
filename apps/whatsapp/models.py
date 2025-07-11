@@ -107,6 +107,8 @@ class WhatsappMetaPlantillas(models.Model):
     nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='nombre')
     descripcion = models.CharField(max_length=255, null=True, blank=True, db_column='descripcion')
     lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')
+    media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
+    tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
     estado      = models.IntegerField(default=1, db_column='estado')
 
     class Meta:

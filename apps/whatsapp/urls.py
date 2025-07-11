@@ -8,6 +8,7 @@ from .views.whatsapp import (
 )
 from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
+from .views.whatsapp_bulk import WhatsappBulkSendAPIView
 
 nivel_list = NivelViewSet.as_view({
     'get':  'list',
@@ -48,5 +49,8 @@ urlpatterns = [
     # level whatsapp
     path('whatsapp-level/show/<int:id>',   ChatLevelShow.as_view(),   name='chatlevel-show'),
     path('whatsapp-level/update/<int:id>', ChatLevelUpdate.as_view(), name='chatlevel-update'),
+
+    # Nuevas URLs para mensajes en bloque
+    path('whatsapp/send-bulk-message', WhatsappBulkSendAPIView.as_view(), name='whatsapp-bulk-send'),
 
 ]
