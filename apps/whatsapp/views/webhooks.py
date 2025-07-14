@@ -71,8 +71,17 @@ class WhatsappWebhookAPIView(APIView):
         message_content = ""
         button_id = None
         
-        # Manejo mejorado de respuestas interactivas
-        if message_type == 'interactive':
+        # Manejo de respuestas de botones (tipo button)
+        if message_type == 'button':
+            button_data = message_obj.get('button', {})
+            print(f"Contenido del botón: {json.dumps(button_data, indent=2)}")
+            
+            message_content = button_data.get('text', '')
+            button_id = button_data.get('payload', '')  # El payload actúa como ID
+            print(f"Botón presionado - Payload: {button_id}, Texto: {message_content}")
+        
+        # Manejo de respuestas interactivas (tipo interactive)
+        elif message_type == 'interactive':
             interactive = message_obj.get('interactive', {})
             print(f"Contenido interactivo: {json.dumps(interactive, indent=2)}")
             
@@ -81,7 +90,7 @@ class WhatsappWebhookAPIView(APIView):
                 button_reply = interactive['button_reply']
                 message_content = button_reply.get('title', '')
                 button_id = button_reply.get('id', '')
-                print(f"Botón presionado - ID: {button_id}, Título: {message_content}")
+                print(f"Botón interactivo presionado - ID: {button_id}, Título: {message_content}")
             
             # Verificar si es respuesta de lista
             elif 'list_reply' in interactive:
@@ -117,6 +126,8 @@ class WhatsappWebhookAPIView(APIView):
         if contacts and len(contacts) > 0:
             profile = contacts[0].get('profile', {})
             name = profile.get('name', phone)
+        
+        print(f"Teléfono admin: {phone_admin}, Teléfono usuario: {phone}, Nombre: {name}")
 
         # Obtener configuración por número de WhatsApp
         setting = WhatsappConfiguracion.objects.filter(
@@ -139,6 +150,7 @@ class WhatsappWebhookAPIView(APIView):
             chat.Estado = 1
             chat.nuevos_mensajes = chat.nuevos_mensajes + 1
             chat.save()
+            print(f"Chat actualizado - ID: {chat.IDChat}")
         else:
             chat = Whatsapp.objects.create(
                 IDRedSocial          = setting.IDRedSocial,
@@ -149,6 +161,7 @@ class WhatsappWebhookAPIView(APIView):
                 Estado               = 1
             )
             newChat = True
+            print(f"Nuevo chat creado - ID: {chat.IDChat}")
 
             # Push notification
             firebase_service = FirebaseServiceV1()
@@ -173,11 +186,14 @@ class WhatsappWebhookAPIView(APIView):
             Hora     = Hora,
             Estado   = 2
         )
+        
+        print(f"Mensaje guardado - ID: {mensaje_guardado.IDChatMensaje}")
 
         # Si es respuesta de botón, guardar información adicional
         if button_id:
             # Aquí puedes agregar lógica específica para manejar diferentes botones
             print(f"Procesando respuesta de botón: {button_id}")
+            self.handle_button_response(setting, chat, button_id, message_content)
 
         # Actualizar timestamps del chat
         dateNative = get_naive_peru_time()
@@ -206,8 +222,26 @@ class WhatsappWebhookAPIView(APIView):
             self.open_ai_response(setting, chat)
 
         pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
-        
 
+    def handle_button_response(self, setting, chat, button_id, message_content):
+        """
+        Maneja respuestas específicas de botones
+        """
+        print(f"Manejando respuesta de botón: {button_id}")
+        
+        # Aquí puedes agregar lógica específica según el payload del botón
+        if button_id == "Sí, deseo agendar":  # Usando el payload real
+            # Lógica específica para agendar
+            response_message = "¡Perfecto! Te ayudaré con el proceso de agendamiento. ¿Cuándo te gustaría programar tu cita?"
+            self.send_message(setting, chat, response_message)
+            
+        elif button_id == "No deseo":  # Asumiendo que tienes un botón "No"
+            # Lógica para cuando no desea agendar
+            response_message = "Entiendo. Si cambias de opinión, estaré aquí para ayudarte."
+            self.send_message(setting, chat, response_message)
+        
+        # Agregar más casos según tus botones
+        
     def open_ai_response(self, setting, chat):
         ultimos_mensajes = list(WhatsappMensajes.objects.filter(
             IDChat=chat.IDChat
