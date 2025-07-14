@@ -109,6 +109,9 @@ class WhatsappMetaPlantillas(models.Model):
     lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')
     mensaje     = models.CharField(max_length=1000, null=True, blank=True, db_column='mensaje')
     media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
+    variables   = models.IntegerField(null=True, blank=True, db_column='variables')
+    nombre_variables = models.CharField(max_length=255, null=True, blank=True, db_column='nombre_variables')
+    usuario_index = models.IntegerField(null=True, blank=True, db_column='usuario_index')
     tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
     estado      = models.IntegerField(default=1, db_column='estado')
 
@@ -121,12 +124,10 @@ class WhatsappMetaPlantillas(models.Model):
     
 class WhatsappPlantillaResumen(models.Model):
     id          = models.AutoField(primary_key=True, db_column='id')
-    nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='nombre')
-    descripcion = models.CharField(max_length=255, null=True, blank=True, db_column='descripcion')
-    lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')
-    mensaje     = models.CharField(max_length=1000, null=True, blank=True, db_column='mensaje')
-    media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
-    tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
+    whatsapp_meta_plantillas_id = models.ForeignKey(WhatsappMetaPlantillas, on_delete=models.PROTECT, db_column='whatsapp_meta_plantillas_id', related_name='plantillas')
+    enviados    = models.CharField(max_length=100, null=True, blank=True, db_column='enviados')
+    exitosos    = models.CharField(max_length=255, null=True, blank=True, db_column='exitosos')
+    fallidos    = models.CharField(max_length=40, null=True, blank=True, db_column='fallidos')
     estado      = models.IntegerField(default=1, db_column='estado')
 
     class Meta:
@@ -134,4 +135,4 @@ class WhatsappPlantillaResumen(models.Model):
         verbose_name_plural = 'WhatsApp Plantillas Resumen'
 
     def __str__(self):
-        return f"{self.nombre} - {self.lenguaje}"
+        return f"id: {self.id} - exitosos: {self.exitosos} - fallidos: {self.fallidos}"

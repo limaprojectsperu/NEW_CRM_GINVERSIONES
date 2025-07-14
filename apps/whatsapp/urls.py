@@ -9,6 +9,7 @@ from .views.whatsapp import (
 from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
 from .views.whatsapp_bulk import WhatsappBulkSendAPIView
+from .views.summary_template import WhatsappMetaPlantillasViewSet, WhatsappPlantillaResumenViewSet
 
 nivel_list = NivelViewSet.as_view({
     'get':  'list',
@@ -52,5 +53,28 @@ urlpatterns = [
 
     # Nuevas URLs para mensajes en bloque
     path('whatsapp/send-bulk-message', WhatsappBulkSendAPIView.as_view(), name='whatsapp-bulk-send'),
+
+    # APIs para WhatsappMetaPlantillas
+    path('whatsapp-meta-plantillas-all', WhatsappMetaPlantillasViewSet.as_view({ 'get': 'listAll' })),
+    path('whatsapp-meta-plantillas', WhatsappMetaPlantillasViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+        }), name='whatsapp-meta-plantillas-list'),
+    path('whatsapp-meta-plantillas/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({
+        'put': 'update',
+        'delete': 'destroy'
+        }), name='whatsapp-meta-plantillas-detail'),
+    path('whatsapp-meta-plantillas/estado/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({ 'put': 'updateState' })),
+    
+    # APIs para WhatsappPlantillaResumen
+    path('whatsapp-plantilla-resumen', WhatsappPlantillaResumenViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+        }), name='whatsapp-plantilla-resumen-list'),
+    path('whatsapp-plantilla-resumen/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({
+        'put': 'update',
+        'delete': 'destroy'
+        }), name='whatsapp-plantilla-resumen-detail'),
+    path('whatsapp-plantilla-resumen/estado/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({ 'put': 'updateState' })),
 
 ]
