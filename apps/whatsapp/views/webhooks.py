@@ -44,6 +44,8 @@ class WhatsappWebhookAPIView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Agregar logging para debug
+            print(f"Payload recibido: {json.dumps(payload, indent=2)}")
             self._init_chat(payload)
         except (KeyError, IndexError) as e:
             print(f"Error al procesar el payload de WhatsApp: {e}")
@@ -55,35 +57,66 @@ class WhatsappWebhookAPIView(APIView):
         entry   = payload.get('entry', [])[0]
         change  = entry.get('changes', [])[0]['value']
 
+        # Verificar si hay mensajes o si es una actualización de estado
         if 'messages' not in change:
+            print("No hay mensajes en el payload")
             return 
-        
+
         message_obj = change['messages'][0]
         message_type = message_obj.get('type')
+        
+        print(f"Tipo de mensaje: {message_type}")
+        print(f"Mensaje completo: {json.dumps(message_obj, indent=2)}")
 
         message_content = ""
-        button_id = None # Variable para guardar el ID del botón
+        button_id = None
         
-        if message_type == 'interactive' and 'button_reply' in message_obj.get('interactive', {}):
-            # Es una respuesta de botón
-            button_reply = message_obj['interactive']['button_reply']
-            message_content = button_reply.get('title', '') # El texto del botón
-            button_id = button_reply.get('id', '')       # El ID del botón que definiste
+        # Manejo mejorado de respuestas interactivas
+        if message_type == 'interactive':
+            interactive = message_obj.get('interactive', {})
+            print(f"Contenido interactivo: {json.dumps(interactive, indent=2)}")
+            
+            # Verificar si es respuesta de botón
+            if 'button_reply' in interactive:
+                button_reply = interactive['button_reply']
+                message_content = button_reply.get('title', '')
+                button_id = button_reply.get('id', '')
+                print(f"Botón presionado - ID: {button_id}, Título: {message_content}")
+            
+            # Verificar si es respuesta de lista
+            elif 'list_reply' in interactive:
+                list_reply = interactive['list_reply']
+                message_content = list_reply.get('title', '')
+                button_id = list_reply.get('id', '')
+                print(f"Lista seleccionada - ID: {button_id}, Título: {message_content}")
+            
+            else:
+                print("Mensaje interactivo no reconocido")
+                return
 
         elif message_type == 'text':
-            # Es un mensaje de texto normal
             message_content = message_obj['text']['body']
+            print(f"Mensaje de texto: {message_content}")
         
         else:
-            # Manejar otros tipos de mensajes (imagen, audio, etc.) o ignorarlos
-            # Por ahora, si no es texto o botón, no hacemos nada.
+            print(f"Tipo de mensaje no soportado: {message_type}")
             return
-        
+
+        # Validar que tenemos contenido del mensaje
+        if not message_content:
+            print("No se pudo extraer el contenido del mensaje")
+            return
+
         # Datos según la carga de WhatsApp
         phone_admin = change['metadata']['display_phone_number']
-        phone       = change['messages'][0]['from']
-        name        = change['contacts'][0]['profile']['name']
-        newChat     = False
+        phone       = message_obj['from']
+        
+        # Obtener nombre del contacto (puede no estar presente)
+        contacts = change.get('contacts', [])
+        name = phone  # Por defecto usar el teléfono
+        if contacts and len(contacts) > 0:
+            profile = contacts[0].get('profile', {})
+            name = profile.get('name', phone)
 
         # Obtener configuración por número de WhatsApp
         setting = WhatsappConfiguracion.objects.filter(
@@ -91,6 +124,7 @@ class WhatsappWebhookAPIView(APIView):
         ).first()
 
         if not setting:
+            print(f"No se encontró configuración para el teléfono: {phone_admin}")
             return 
 
         # Crear o actualizar el chat
@@ -99,14 +133,16 @@ class WhatsappWebhookAPIView(APIView):
             Telefono=phone
         ).first()
 
+        newChat = False
+
         if chat:
             chat.Estado = 1
-            chat.nuevos_mensajes = chat.nuevos_mensajes+1
+            chat.nuevos_mensajes = chat.nuevos_mensajes + 1
             chat.save()
         else:
             chat = Whatsapp.objects.create(
                 IDRedSocial          = setting.IDRedSocial,
-                Nombre               = name if name else phone,
+                Nombre               = name,
                 Telefono             = phone,
                 IDEL                 = find_state_id(2, 'No leído'),
                 nuevos_mensajes      = 1,
@@ -114,7 +150,7 @@ class WhatsappWebhookAPIView(APIView):
             )
             newChat = True
 
-            #push notification
+            # Push notification
             firebase_service = FirebaseServiceV1()
             tokens = get_user_tokens_by_permissions("messenger.index")
             if len(tokens) > 0:
@@ -129,7 +165,7 @@ class WhatsappWebhookAPIView(APIView):
         Fecha, Hora = get_date_time()
 
         # Guardar mensaje entrante (Estado 2 = recibido)
-        WhatsappMensajes.objects.create(
+        mensaje_guardado = WhatsappMensajes.objects.create(
             IDChat   = chat.IDChat,
             Telefono = phone,
             Mensaje  = message_content,
@@ -137,6 +173,11 @@ class WhatsappWebhookAPIView(APIView):
             Hora     = Hora,
             Estado   = 2
         )
+
+        # Si es respuesta de botón, guardar información adicional
+        if button_id:
+            # Aquí puedes agregar lógica específica para manejar diferentes botones
+            print(f"Procesando respuesta de botón: {button_id}")
 
         # Actualizar timestamps del chat
         dateNative = get_naive_peru_time()
@@ -150,36 +191,41 @@ class WhatsappWebhookAPIView(APIView):
             Estado=1
         ).update(Estado=3)
 
-        #respuesta automatica
+        # Respuesta automática
         if newChat:
-            template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id, estado=True, tipo=1).first()
+            template = MessengerPlantilla.objects.filter(
+                marca_id=setting.marca_id, 
+                estado=True, 
+                tipo=1
+            ).first()
             if template:
                 self.send_message(setting, chat, template.mensaje)
-        
-        #open AI
+
+        # OpenAI
         if setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
-        
+
         pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
-    
+        
+
     def open_ai_response(self, setting, chat):
-        ultimos_mensajes = list(WhatsappMensajes.objects.order_by('-IDChatMensaje')[:4])
+        ultimos_mensajes = list(WhatsappMensajes.objects.filter(
+            IDChat=chat.IDChat
+        ).order_by('-IDChatMensaje')[:4])
         ultimos_mensajes.reverse()
         
         messages = []
         
         for entry in ultimos_mensajes:
-            # Si Telefono coincide con el admin, es rol 'assistant'; si no, es 'user'
             role = "assistant" if entry.Telefono == setting.Telefono else "user"
             messages.append({"role": role, "content": entry.Mensaje})
         
         res = chatbot.get_response(setting.marca_id, messages)
         self.send_message(setting, chat, res, 2)
 
-    def send_message(self, setting, chat, mensaje, origen = 1):
+    def send_message(self, setting, chat, mensaje, origen=1):
         Fecha, Hora = get_date_time()
 
-        # 1. Prepara los datos que necesitas enviar
         message_data = {
             "IDRedSocial": setting.IDRedSocial,
             "tokenHook": setting.TokenHook,  
@@ -192,18 +238,14 @@ class WhatsappWebhookAPIView(APIView):
             "origen": origen,
         }
         
-        # Crear una request factory
         factory = RequestFactory()
-        # Crear WSGIRequest con JSON data
         django_request = factory.post(
             '/api/messenger-app/send-message/',
             data=json.dumps(message_data),
             content_type='application/json'
         )
         
-        # Convertir a DRF Request con parser específico
         drf_request = Request(django_request, parsers=[JSONParser()])
-        # Llamar directamente a la vista
         view = WhatsappSendAPIView()
         response = view.post(drf_request)
         
