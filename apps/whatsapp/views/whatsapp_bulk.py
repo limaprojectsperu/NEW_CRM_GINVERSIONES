@@ -427,12 +427,12 @@ class WhatsappBulkSendAPIView(APIView):
     
     def _build_message_text(self, template, params, has_media=False):
         """Construye el texto del mensaje para guardar en BD"""
-        message = f"[Plantilla: {template.nombre}]"
+        message = f"Plantilla: {template.descripcion}"
         
         if has_media:
-            message += " [Con media]"
+            message += " (Con archivo adjunto)"
         
-        if params:
-            message += f" - Parámetros: {', '.join(map(str, params))}"
+        #if params:
+            #message += f" - Parámetros: {', '.join(map(str, params))}"
             
         return message
