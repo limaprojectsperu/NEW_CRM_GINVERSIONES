@@ -87,7 +87,7 @@ class WhatsappBulkSendAPIView(APIView):
         )
         
         return JsonResponse({
-            'message': 'Procesamiento de mensajes en bloque completado.',
+            'message': 'Mensajes enviados con éxito.',
             'results': results,
             'template_media_uploaded': bool(media_id and template.media_url),
             'media_id': media_id,
