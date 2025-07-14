@@ -107,6 +107,7 @@ class WhatsappMetaPlantillas(models.Model):
     nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='nombre')
     descripcion = models.CharField(max_length=255, null=True, blank=True, db_column='descripcion')
     lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')
+    mensaje     = models.CharField(max_length=1000, null=True, blank=True, db_column='mensaje')
     media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
     tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
     estado      = models.IntegerField(default=1, db_column='estado')
@@ -114,6 +115,23 @@ class WhatsappMetaPlantillas(models.Model):
     class Meta:
         db_table = 'whatsapp_meta_plantillas'
         verbose_name_plural = 'WhatsApp Meta Plantillas'
+
+    def __str__(self):
+        return f"{self.nombre} - {self.lenguaje}"
+    
+class WhatsappPlantillaResumen(models.Model):
+    id          = models.AutoField(primary_key=True, db_column='id')
+    nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='nombre')
+    descripcion = models.CharField(max_length=255, null=True, blank=True, db_column='descripcion')
+    lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')
+    mensaje     = models.CharField(max_length=1000, null=True, blank=True, db_column='mensaje')
+    media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
+    tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
+    estado      = models.IntegerField(default=1, db_column='estado')
+
+    class Meta:
+        db_table = 'whatsapp_plantilla_resumen'
+        verbose_name_plural = 'WhatsApp Plantillas Resumen'
 
     def __str__(self):
         return f"{self.nombre} - {self.lenguaje}"

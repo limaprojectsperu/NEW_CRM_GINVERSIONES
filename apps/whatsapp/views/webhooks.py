@@ -43,16 +43,45 @@ class WhatsappWebhookAPIView(APIView):
         if not payload:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        self._init_chat(payload)
+        try:
+            self._init_chat(payload)
+        except (KeyError, IndexError) as e:
+            print(f"Error al procesar el payload de WhatsApp: {e}")
+            return Response({'status': 'error processing payload but acknowledged'})
+
         return Response({'status': 'ok'})
 
     def _init_chat(self, payload):
         entry   = payload.get('entry', [])[0]
         change  = entry.get('changes', [])[0]['value']
+
+        if 'messages' not in change:
+            return 
+        
+        message_obj = change['messages'][0]
+        message_type = message_obj.get('type')
+
+        message_content = ""
+        button_id = None # Variable para guardar el ID del botón
+        
+        if message_type == 'interactive' and 'button_reply' in message_obj.get('interactive', {}):
+            # Es una respuesta de botón
+            button_reply = message_obj['interactive']['button_reply']
+            message_content = button_reply.get('title', '') # El texto del botón
+            button_id = button_reply.get('id', '')       # El ID del botón que definiste
+
+        elif message_type == 'text':
+            # Es un mensaje de texto normal
+            message_content = message_obj['text']['body']
+        
+        else:
+            # Manejar otros tipos de mensajes (imagen, audio, etc.) o ignorarlos
+            # Por ahora, si no es texto o botón, no hacemos nada.
+            return
+        
         # Datos según la carga de WhatsApp
         phone_admin = change['metadata']['display_phone_number']
         phone       = change['messages'][0]['from']
-        message     = change['messages'][0]['text']['body']
         name        = change['contacts'][0]['profile']['name']
         newChat     = False
 
@@ -60,6 +89,9 @@ class WhatsappWebhookAPIView(APIView):
         setting = WhatsappConfiguracion.objects.filter(
             Telefono=phone_admin
         ).first()
+
+        if not setting:
+            return 
 
         # Crear o actualizar el chat
         chat = Whatsapp.objects.filter(
@@ -89,7 +121,7 @@ class WhatsappWebhookAPIView(APIView):
                 firebase_service.send_to_multiple_devices(
                     tokens=tokens,
                     title="Nuevo mensaje en WhatsApp",
-                    body=message,
+                    body=message_content,
                     data={'type': 'router', 'route_name': 'WhatsappPage'}
                 )
 
@@ -100,7 +132,7 @@ class WhatsappWebhookAPIView(APIView):
         WhatsappMensajes.objects.create(
             IDChat   = chat.IDChat,
             Telefono = phone,
-            Mensaje  = message,
+            Mensaje  = message_content,
             Fecha    = Fecha,
             Hora     = Hora,
             Estado   = 2

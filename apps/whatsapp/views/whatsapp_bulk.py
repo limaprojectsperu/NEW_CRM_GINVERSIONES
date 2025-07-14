@@ -427,12 +427,20 @@ class WhatsappBulkSendAPIView(APIView):
     
     def _build_message_text(self, template, params, has_media=False):
         """Construye el texto del mensaje para guardar en BD"""
-        message = f"Plantilla: {template.descripcion}"
-        
+        message_text = template.mensaje
+
+        if not message_text:
+            # Si no hay mensaje en la plantilla, usar la descripción como fallback.
+            message_text = f"Plantilla: {template.descripcion}"
+        elif params:
+            # Reemplazar cada placeholder {{n}} con el parámetro correspondiente.
+            for i, param in enumerate(params):
+                # El placeholder es {{1}}, {{2}}, etc. El índice de la lista es 0, 1, ...
+                placeholder = f"{{{{{i + 1}}}}}"
+                message_text = message_text.replace(placeholder, str(param))
+
+        # Opcionalmente, agregar una nota si el mensaje incluye un archivo.
         if has_media:
-            message += " (Con archivo adjunto)"
-        
-        #if params:
-            #message += f" - Parámetros: {', '.join(map(str, params))}"
-            
-        return message
+            message_text += " (Con archivo adjunto)"
+
+        return message_text
