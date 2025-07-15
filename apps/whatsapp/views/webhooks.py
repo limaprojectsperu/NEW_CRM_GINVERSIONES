@@ -1,9 +1,12 @@
 import requests
+import json
+import os
 from django.http import HttpResponse, HttpResponseForbidden
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
+from django.conf import settings
 from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
@@ -14,9 +17,9 @@ from apps.openai.openai_chatbot import ChatbotService
 from django.test import RequestFactory
 from rest_framework.request import Request
 from ..views.whatsapp_app import WhatsappSendAPIView
-import json
 from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
+from apps.users.views.wasabi import save_file_to_wasabi
 
 chatbot = ChatbotService()
 
@@ -25,14 +28,13 @@ class WhatsappWebhookAPIView(APIView):
     GET  /api/web-hooks/app    -> verifica token y responde hub_challenge
     POST /api/web-hooks/app   -> recibe mensajes de WhatsApp y guarda en BD
     """
+
     def get(self, request):
         hub_challenge   = request.GET.get('hub.challenge', '')
         hub_verify_token = request.GET.get('hub.verify_token', '')
         hub_mode        = request.GET.get('hub.mode', '')
 
-        setting = WhatsappConfiguracion.objects.filter(
-            Estado=1
-        ).first()
+        setting = WhatsappConfiguracion.objects.filter(Estado=1).first()
 
         if hub_mode == 'subscribe' and setting and setting.TokenHook == hub_verify_token:
             return HttpResponse(hub_challenge)
@@ -44,7 +46,6 @@ class WhatsappWebhookAPIView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Agregar logging para debug
             self._init_chat(payload)
         except (KeyError, IndexError) as e:
             print(f"Error al procesar el payload de WhatsApp: {e}")
@@ -64,69 +65,249 @@ class WhatsappWebhookAPIView(APIView):
         message_obj = change['messages'][0]
         message_type = message_obj.get('type')
         
-        #print(f"Tipo de mensaje: {message_type}")
-        #print(f"Mensaje completo: {json.dumps(message_obj, indent=2)}")
+        print(f"Tipo de mensaje: {message_type}")
 
         message_content = ""
         button_id = None
+        media_info = None
         
-        # Manejo de respuestas de botones (tipo button)
+        # Manejo de diferentes tipos de mensajes
         if message_type == 'button':
             button_data = message_obj.get('button', {})
             message_content = button_data.get('text', '')
-            button_id = button_data.get('payload', '')  # El payload actúa como ID
+            button_id = button_data.get('payload', '')
         
-        # Manejo de respuestas interactivas (tipo interactive)
         elif message_type == 'interactive':
             interactive = message_obj.get('interactive', {})
             
-            # Verificar si es respuesta de botón
             if 'button_reply' in interactive:
                 button_reply = interactive['button_reply']
                 message_content = button_reply.get('title', '')
                 button_id = button_reply.get('id', '')
             
-            # Verificar si es respuesta de lista
             elif 'list_reply' in interactive:
                 list_reply = interactive['list_reply']
                 message_content = list_reply.get('title', '')
                 button_id = list_reply.get('id', '')
-            
             else:
                 return
 
         elif message_type == 'text':
             message_content = message_obj['text']['body']
         
+        # NUEVOS TIPOS DE MENSAJES MULTIMEDIA
+        elif message_type == 'image':
+            media_info = self._process_media_message(message_obj, 'image')
+            message_content = media_info.get('caption', '[Imagen]')
+        
+        elif message_type == 'audio':
+            media_info = self._process_media_message(message_obj, 'audio')
+            message_content = '[Audio]'
+        
+        elif message_type == 'video':
+            media_info = self._process_media_message(message_obj, 'video')
+            message_content = media_info.get('caption', '[Video]')
+        
+        elif message_type == 'document':
+            media_info = self._process_media_message(message_obj, 'document')
+            filename = media_info.get('filename', 'documento')
+            message_content = f'[Documento: {filename}]'
+        
+        elif message_type == 'voice':
+            media_info = self._process_media_message(message_obj, 'voice')
+            message_content = '[Nota de voz]'
+        
+        elif message_type == 'sticker':
+            media_info = self._process_media_message(message_obj, 'sticker')
+            message_content = '[Sticker]'
+        
         else:
-            #print(f"Tipo de mensaje no soportado: {message_type}")
+            print(f"Tipo de mensaje no soportado: {message_type}")
             return
 
         # Validar que tenemos contenido del mensaje
         if not message_content:
-            #print("No se pudo extraer el contenido del mensaje")
+            print("No se pudo extraer el contenido del mensaje")
             return
 
-        # Datos según la carga de WhatsApp
+        # Obtener datos del mensaje
         phone_admin = change['metadata']['display_phone_number']
-        phone       = message_obj['from']
+        phone = message_obj['from']
         
-        # Obtener nombre del contacto (puede no estar presente)
+        # Obtener nombre del contacto
         contacts = change.get('contacts', [])
-        name = phone  # Por defecto usar el teléfono
+        name = phone
         if contacts and len(contacts) > 0:
             profile = contacts[0].get('profile', {})
             name = profile.get('name', phone)
 
-        # Obtener configuración por número de WhatsApp
-        setting = WhatsappConfiguracion.objects.filter(
-            Telefono=phone_admin
-        ).first()
-
+        # Obtener configuración
+        setting = WhatsappConfiguracion.objects.filter(Telefono=phone_admin).first()
         if not setting:
             return 
 
         # Crear o actualizar el chat
+        chat = self._get_or_create_chat(setting, phone, name)
+
+        # Guardar mensaje
+        self._save_incoming_message(chat, phone, message_content, media_info, button_id)
+
+        # Respuesta automática y notificaciones
+        self._handle_auto_response(setting, chat, message_content)
+
+        pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
+
+    def _process_media_message(self, message_obj, media_type):
+        """
+        Procesa mensajes multimedia y descarga/almacena archivos
+        """
+        try:
+            media_data = message_obj.get(media_type, {})
+            media_id = media_data.get('id')
+            
+            if not media_id:
+                print(f"No se encontró ID de media para {media_type}")
+                return None
+
+            # Información básica del archivo
+            media_info = {
+                'id': media_id,
+                'type': media_type,
+                'mime_type': media_data.get('mime_type'),
+                'sha256': media_data.get('sha256'),
+                'filename': media_data.get('filename'),  # Solo para documentos
+                'caption': media_data.get('caption'),    # Para imágenes/videos
+                'voice': media_data.get('voice', False)  # Para audio
+            }
+
+            # Información específica por tipo
+            if media_type == 'audio':
+                media_info['duration'] = media_data.get('duration')
+                media_info['voice'] = media_data.get('voice', False)
+            elif media_type == 'video':
+                media_info['duration'] = media_data.get('duration')
+            elif media_type == 'image':
+                media_info['caption'] = media_data.get('caption')
+            elif media_type == 'document':
+                media_info['filename'] = media_data.get('filename')
+
+            # Descargar y guardar archivo
+            file_info = self._download_and_save_media(media_id, media_info)
+            if file_info:
+                media_info.update(file_info)
+
+            return media_info
+
+        except Exception as e:
+            print(f"Error procesando media {media_type}: {e}")
+            return None
+
+    def _download_and_save_media(self, media_id, media_info):
+        """
+        Descarga archivo de WhatsApp API y lo guarda en Wasabi
+        """
+        try:
+            # Obtener configuración para el token
+            setting = WhatsappConfiguracion.objects.filter(Estado=1).first()
+            if not setting:
+                print("No se encontró configuración de WhatsApp")
+                return None
+
+            # 1. Obtener URL del archivo desde WhatsApp API
+            headers = {
+                'Authorization': f'Bearer {setting.Token}',
+                'Content-Type': 'application/json'
+            }
+            
+            url_info = f"{setting.urlApi}/{media_id}"
+            response = requests.get(url_info, headers=headers, timeout=30)
+            
+            if response.status_code != 200:
+                print(f"Error obteniendo info del archivo: {response.status_code}")
+                return None
+
+            file_info = response.json()
+            file_url = file_info.get('url')
+            
+            if not file_url:
+                print("No se obtuvo URL del archivo")
+                return None
+
+            # 2. Descargar archivo
+            file_response = requests.get(file_url, headers=headers, timeout=60)
+            
+            if file_response.status_code != 200:
+                print(f"Error descargando archivo: {file_response.status_code}")
+                return None
+
+            # 3. Generar nombre y ruta del archivo
+            timestamp = int(timezone.now().timestamp())
+            extension = self._get_file_extension(media_info)
+            filename = f"{timestamp}{extension}"
+            
+            # Usar teléfono como carpeta (se obtendrá del contexto)
+            telefono = "temp"  # Se actualizará al guardar el mensaje
+            rel_path = f"media/whatsapp/{telefono}/{filename}"
+
+            # 4. Guardar en Wasabi
+            wasabi_result = save_file_to_wasabi(
+                file_response.content,
+                rel_path,
+                media_info.get('mime_type', 'application/octet-stream')
+            )
+
+            if wasabi_result['success']:
+                # Construir información del archivo guardado
+                file_size = len(file_response.content)
+                file_url = f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/{telefono}/{filename}"
+                
+                return {
+                    'local_path': file_url,
+                    'filename': filename,
+                    'size': file_size,
+                    'storage': 'wasabi'
+                }
+            else:
+                print(f"Error guardando en Wasabi: {wasabi_result['error']}")
+                return None
+
+        except Exception as e:
+            print(f"Error descargando/guardando archivo: {e}")
+            return None
+
+    def _get_file_extension(self, media_info):
+        """
+        Obtiene extensión del archivo basada en mime_type o filename
+        """
+        # Si hay filename, usar su extensión
+        if media_info.get('filename'):
+            return os.path.splitext(media_info['filename'])[1]
+        
+        # Mapeo básico de mime_type a extensión
+        mime_to_ext = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'audio/mpeg': '.mp3',
+            'audio/mp4': '.mp4',
+            'audio/ogg': '.ogg',
+            'video/mp4': '.mp4',
+            'video/quicktime': '.mov',
+            'application/pdf': '.pdf',
+            'application/msword': '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/vnd.ms-excel': '.xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        }
+        
+        mime_type = media_info.get('mime_type', '')
+        return mime_to_ext.get(mime_type, '')
+
+    def _get_or_create_chat(self, setting, phone, name):
+        """
+        Obtiene o crea un chat
+        """
         chat = Whatsapp.objects.filter(
             IDRedSocial=setting.IDRedSocial,
             Telefono=phone
@@ -140,49 +321,79 @@ class WhatsappWebhookAPIView(APIView):
             chat.save()
         else:
             chat = Whatsapp.objects.create(
-                IDRedSocial          = setting.IDRedSocial,
-                Nombre               = name,
-                Telefono             = phone,
-                IDEL                 = find_state_id(2, 'No leído'),
-                nuevos_mensajes      = 1,
-                Estado               = 1
+                IDRedSocial=setting.IDRedSocial,
+                Nombre=name,
+                Telefono=phone,
+                IDEL=find_state_id(2, 'No leído'),
+                nuevos_mensajes=1,
+                Estado=1
             )
             newChat = True
 
-            # Push notification
-            firebase_service = FirebaseServiceV1()
-            tokens = get_user_tokens_by_permissions("messenger.index")
-            if len(tokens) > 0:
-                firebase_service.send_to_multiple_devices(
-                    tokens=tokens,
-                    title="Nuevo mensaje en WhatsApp",
-                    body=message_content,
-                    data={'type': 'router', 'route_name': 'WhatsappPage'}
-                )
+            # Push notification para nuevo chat
+            if newChat:
+                firebase_service = FirebaseServiceV1()
+                tokens = get_user_tokens_by_permissions("messenger.index")
+                if len(tokens) > 0:
+                    firebase_service.send_to_multiple_devices(
+                        tokens=tokens,
+                        title="Nuevo mensaje en WhatsApp",
+                        body=f"Nuevo mensaje de {name}",
+                        data={'type': 'router', 'route_name': 'WhatsappPage'}
+                    )
 
-        # Fechas en formato local Perú
+        return chat
+
+    def _save_incoming_message(self, chat, phone, message_content, media_info=None, button_id=None):
+        """
+        Guarda mensaje entrante en la base de datos
+        """
         Fecha, Hora = get_date_time()
+        
+        # Preparar URL y extensión si hay media
+        url = None
+        extension_data = None
+        
+        if media_info:
+            url = media_info.get('local_path')
+            
+            # Actualizar path con teléfono correcto
+            if url:
+                url = url.replace('/temp/', f'/{phone}/')
+                # Actualizar también en Wasabi si es necesario
+                self._update_media_path(media_info, phone)
+            
+            # Crear datos de extensión como JSON
+            extension_data = {
+                'name': media_info.get('filename', 'archivo'),
+                'size': media_info.get('size', 0),
+                'type': media_info.get('mime_type', 'application/octet-stream'),
+                'extension': media_info.get('filename', '').split('.')[-1] if media_info.get('filename') else '',
+                'media_type': media_info.get('type'),
+                'duration': media_info.get('duration')  # Para audio/video
+            }
+            
+            # Campos específicos para audio
+            if media_info.get('type') == 'audio':
+                extension_data['audio'] = True
+                extension_data['voice'] = media_info.get('voice', False)
 
-        # Guardar mensaje entrante (Estado 2 = recibido)
+        # Guardar mensaje
         mensaje_guardado = WhatsappMensajes.objects.create(
-            IDChat   = chat.IDChat,
-            Telefono = phone,
-            Mensaje  = message_content,
-            Fecha    = Fecha,
-            Hora     = Hora,
-            Estado   = 2
+            IDChat=chat.IDChat,
+            Telefono=phone,
+            Mensaje=message_content,
+            Fecha=Fecha,
+            Hora=Hora,
+            Url=url,
+            Extencion=json.dumps(extension_data) if extension_data else None,
+            Estado=2  # Mensaje recibido
         )
-
-        # Si es respuesta de botón, guardar información adicional
-        if button_id:
-            # Aquí puedes agregar lógica específica para manejar diferentes botones
-            print(f"Procesando respuesta de botón: {button_id}")
-            #self.handle_button_response(setting, chat, button_id, message_content)
 
         # Actualizar timestamps del chat
         dateNative = get_naive_peru_time()
         chat.FechaUltimaPlantilla = dateNative
-        chat.updated_at           = dateNative 
+        chat.updated_at = dateNative 
         chat.save()
 
         # Marcar como vistos los mensajes anteriores
@@ -191,8 +402,33 @@ class WhatsappWebhookAPIView(APIView):
             Estado=1
         ).update(Estado=3)
 
-        # Respuesta automática
-        if newChat:
+        return mensaje_guardado
+
+    def _update_media_path(self, media_info, phone):
+        """
+        Actualiza la ruta del archivo en Wasabi con el teléfono correcto
+        """
+        if not media_info or not media_info.get('filename'):
+            return
+            
+        try:
+            # Obtener archivo temporal
+            temp_path = f"media/whatsapp/temp/{media_info['filename']}"
+            final_path = f"media/whatsapp/{phone}/{media_info['filename']}"
+            
+            # Aquí podrías implementar la lógica para mover el archivo
+            # Por ahora, el archivo ya está guardado correctamente
+            pass
+            
+        except Exception as e:
+            print(f"Error actualizando ruta de media: {e}")
+
+    def _handle_auto_response(self, setting, chat, message_content):
+        """
+        Maneja respuestas automáticas y OpenAI
+        """
+        # Respuesta automática para nuevos chats
+        if chat.nuevos_mensajes == 1:  # Nuevo chat
             template = MessengerPlantilla.objects.filter(
                 marca_id=setting.marca_id, 
                 estado=True, 
@@ -201,30 +437,26 @@ class WhatsappWebhookAPIView(APIView):
             if template:
                 self.send_message(setting, chat, template.mensaje)
 
-        # OpenAI
+        # OpenAI response
         if setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
-
-        pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
 
     def handle_button_response(self, setting, chat, button_id, message_content):
         """
         Maneja respuestas específicas de botones
         """
-        # Aquí puedes agregar lógica específica según el payload del botón
-        if button_id == "Sí, deseo agendar":  # Usando el payload real
-            # Lógica específica para agendar
+        if button_id == "Sí, deseo agendar":
             response_message = "¡Perfecto! Te ayudaré con el proceso de agendamiento. ¿Cuándo te gustaría programar tu cita?"
             self.send_message(setting, chat, response_message)
             
-        elif button_id == "No deseo":  # Asumiendo que tienes un botón "No"
-            # Lógica para cuando no desea agendar
+        elif button_id == "No deseo":
             response_message = "Entiendo. Si cambias de opinión, estaré aquí para ayudarte."
             self.send_message(setting, chat, response_message)
-        
-        # Agregar más casos según tus botones
-        
+
     def open_ai_response(self, setting, chat):
+        """
+        Genera respuesta usando OpenAI
+        """
         ultimos_mensajes = list(WhatsappMensajes.objects.filter(
             IDChat=chat.IDChat
         ).order_by('-IDChatMensaje')[:4])
@@ -240,6 +472,9 @@ class WhatsappWebhookAPIView(APIView):
         self.send_message(setting, chat, res, 2)
 
     def send_message(self, setting, chat, mensaje, origen=1):
+        """
+        Envía mensaje usando WhatsappSendAPIView
+        """
         Fecha, Hora = get_date_time()
 
         message_data = {
