@@ -22,7 +22,7 @@ class MessengerConfiguracion(models.Model):
         verbose_name_plural = 'Messenger Configuracion'
 
     def __str__(self):
-        return self.Nombre or f"Config {self.IDRedSocial}"
+        return f"Id: {self.IDRedSocial} - {self.Nombre}"
 
 class Messenger(models.Model):
     IDChat      = models.AutoField(primary_key=True, db_column='IDChat')

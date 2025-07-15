@@ -8,10 +8,10 @@ from rest_framework import status
 from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsappMetaPlantillas
+from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsappMetaPlantillas, WhatsappPlantillaResumen
 from apps.utils.datetime_func import get_date_time, get_naive_peru_time
 from apps.utils.find_states import find_state_id
-
+from ..serializers import WhatsappPlantillaResumenSerializer
 
 class WhatsappBulkSendAPIView(APIView):
     """
@@ -24,7 +24,7 @@ class WhatsappBulkSendAPIView(APIView):
         data = request.data
         
         # Validar campos requeridos
-        required_fields = ['IDRedSocial', 'tokenHook', 'template_name', 'phone_numbers']
+        required_fields = ['IDRedSocial', 'tokenHook', 'template_name', 'phone_numbers', 'origen_datos']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
@@ -85,6 +85,15 @@ class WhatsappBulkSendAPIView(APIView):
             media_id=media_id,
             media_type=media_type
         )
+
+        if data.get('origen_datos') != 'Individual':
+            WhatsappPlantillaResumen.objects.create(
+                whatsapp_meta_plantillas_id = template,
+                enviados = len(phone_numbers),
+                exitosos = len([r for r in results if r['success']]),
+                fallidos = len([r for r in results if not r['success']]),
+                origen_datos = data.get('origen_datos')
+            )
         
         return JsonResponse({
             'message': 'Mensajes enviados con éxito.',

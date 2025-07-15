@@ -58,23 +58,23 @@ urlpatterns = [
     path('whatsapp-meta-plantillas-all', WhatsappMetaPlantillasViewSet.as_view({ 'get': 'listAll' })),
     path('whatsapp-meta-plantillas', WhatsappMetaPlantillasViewSet.as_view({
         'get': 'list',
-        'post': 'create'
+        #'post': 'create'
         }), name='whatsapp-meta-plantillas-list'),
-    path('whatsapp-meta-plantillas/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({
-        'put': 'update',
-        'delete': 'destroy'
-        }), name='whatsapp-meta-plantillas-detail'),
-    path('whatsapp-meta-plantillas/estado/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({ 'put': 'updateState' })),
+    #path('whatsapp-meta-plantillas/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({
+        #'put': 'update',
+        #'delete': 'destroy'
+        #}), name='whatsapp-meta-plantillas-detail'),
+    #path('whatsapp-meta-plantillas/estado/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({ 'put': 'updateState' })),
     
     # APIs para WhatsappPlantillaResumen
     path('whatsapp-plantilla-resumen', WhatsappPlantillaResumenViewSet.as_view({
         'get': 'list',
-        'post': 'create'
+        #'post': 'create'
         }), name='whatsapp-plantilla-resumen-list'),
-    path('whatsapp-plantilla-resumen/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({
-        'put': 'update',
-        'delete': 'destroy'
-        }), name='whatsapp-plantilla-resumen-detail'),
-    path('whatsapp-plantilla-resumen/estado/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({ 'put': 'updateState' })),
+    #path('whatsapp-plantilla-resumen/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({
+        #'put': 'update',
+        #'delete': 'destroy'
+        #}), name='whatsapp-plantilla-resumen-detail'),
+    #path('whatsapp-plantilla-resumen/estado/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({ 'put': 'updateState' })),
 
 ]

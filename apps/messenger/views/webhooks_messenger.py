@@ -1,22 +1,25 @@
 import requests
+import json
+import os
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse, HttpResponseForbidden
+from django.conf import settings
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
-from apps.utils.datetime_func  import get_naive_peru_time, get_date_time
+from apps.utils.datetime_func import get_naive_peru_time, get_date_time
 from apps.utils.tokens_phone import get_user_tokens_by_permissions
 from apps.openai.openai_chatbot import ChatbotService
 from django.test import RequestFactory
 from rest_framework.request import Request
 from ..views.messenger_app import MessengerSendView
-import json
 from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
+from apps.users.views.wasabi import save_file_to_wasabi
 
 chatbot = ChatbotService()
 
@@ -26,26 +29,20 @@ class WebhookVerifyReceive(APIView):
     Verifica el token de Facebook y devuelve hub_challenge.
     """
     def get(self, request, IDRedSocial):
-        # Obtener todos los parámetros según la documentación
         hub_mode = request.GET.get('hub.mode', '')
         hub_challenge = request.GET.get('hub.challenge', '')
         hub_verify_token = request.GET.get('hub.verify_token', '')
         
-        # Obtener la configuración del token
         setting = MessengerConfiguracion.objects.filter(
             IDRedSocial=IDRedSocial
         ).first()
         
-        # Verificar modo y token como en la documentación
         if hub_mode and hub_verify_token:
             if hub_mode == 'subscribe' and setting and setting.TokenHook == hub_verify_token:
-                # Responder con el challenge tal como se recibió
                 return HttpResponse(hub_challenge)
             else:
-                # Responder con 403 Forbidden si los tokens no coinciden
                 return HttpResponseForbidden()
         
-        # Si no hay modo o token, responder con 403
         return HttpResponseForbidden()
 
     """
@@ -57,13 +54,18 @@ class WebhookVerifyReceive(APIView):
         if not payload:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        self._init_chat(payload, IDRedSocial)
+        try:
+            self._init_chat(payload, IDRedSocial)
+        except (KeyError, IndexError) as e:
+            print(f"Error al procesar el payload de Messenger: {e}")
+            return Response({'status': 'error processing payload but acknowledged'})
+
         pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
 
     def _get_user_name(self, sender_id, setting):
         """
-        Reemplaza la llamada curl a /{sender_id}?fields=name
+        Obtiene el nombre del usuario desde la API de Facebook
         """
         url = f"{setting.url_graph_v}/{sender_id}"
         try:
@@ -74,31 +76,91 @@ class WebhookVerifyReceive(APIView):
             
             if resp.status_code == 200:
                 data = resp.json()
-                # Retorna el nombre si existe, sino 'Usuario desconocido'
                 return data.get('name', 'Usuario desconocido')
             else:
                 return 'Usuario desconocido'
         except (requests.RequestException, ValueError):
-            # Manejo de errores de conexión o JSON inválido
             return 'Usuario desconocido'
-
 
     def _init_chat(self, payload, IDRedSocial):
         """
         Lógica para crear/actualizar chat y guardar mensaje entrante.
         """
         entry = payload.get('entry', [])[0]
-        msg   = entry.get('messaging', [])[0]
+        msg = entry.get('messaging', [])[0]
 
         sender_admin = msg['recipient']['id']
-        sender_id    = msg['sender']['id']
-        text         = msg.get('message', {}).get('text', '')
-        newChat = False
-
+        sender_id = msg['sender']['id']
+        
+        # Obtener el mensaje y determinar el tipo
+        message_obj = msg.get('message', {})
+        message_content = ""
+        media_info = None
+        
         # Cargamos configuración
         setting = MessengerConfiguracion.objects.filter(
             IDRedSocial=IDRedSocial
         ).first()
+        
+        if not setting:
+            return
+
+        # Procesar diferentes tipos de mensajes
+        if 'text' in message_obj:
+            message_content = message_obj['text']
+        
+        elif 'attachments' in message_obj:
+            attachments = message_obj['attachments']
+            if attachments:
+                attachment = attachments[0]
+                attachment_type = attachment.get('type')
+                
+                if attachment_type == 'image':
+                    media_info = self._process_media_attachment(attachment, 'image', setting, sender_id)
+                    message_content = '[Imagen]'
+                
+                elif attachment_type == 'video':
+                    media_info = self._process_media_attachment(attachment, 'video', setting, sender_id)
+                    message_content = '[Video]'
+                
+                elif attachment_type == 'audio':
+                    media_info = self._process_media_attachment(attachment, 'audio', setting, sender_id)
+                    message_content = '[Audio]'
+                
+                elif attachment_type == 'file':
+                    media_info = self._process_media_attachment(attachment, 'file', setting, sender_id)
+                    message_content = '[Archivo]'
+                
+                elif attachment_type == 'template':
+                    # Manejo de plantillas (botones, carruseles, etc.)
+                    template = attachment.get('payload', {})
+                    if template.get('template_type') == 'button':
+                        message_content = template.get('text', '[Plantilla con botones]')
+                    else:
+                        message_content = '[Plantilla]'
+                
+                else:
+                    message_content = f'[{attachment_type.capitalize()}]'
+        
+        elif 'quick_reply' in message_obj:
+            # Respuesta rápida
+            quick_reply = message_obj['quick_reply']
+            message_content = message_obj.get('text', '[Respuesta rápida]')
+        
+        elif 'postback' in msg:
+            # Postback de botones
+            postback = msg['postback']
+            message_content = postback.get('title', '[Postback]')
+        
+        else:
+            # Otros tipos de mensajes
+            message_content = '[Mensaje no soportado]'
+
+        if not message_content:
+            print("No se pudo extraer el contenido del mensaje")
+            return
+
+        newChat = False
 
         # Buscamos chat existente
         chat = Messenger.objects.filter(
@@ -108,7 +170,7 @@ class WebhookVerifyReceive(APIView):
 
         if chat:
             chat.Estado = 1
-            chat.nuevos_mensajes = chat.nuevos_mensajes+1
+            chat.nuevos_mensajes = chat.nuevos_mensajes + 1
             chat.save()
             user_name = chat.Nombre
         else:
@@ -124,38 +186,196 @@ class WebhookVerifyReceive(APIView):
             )
             newChat = True
 
-            #push notification
+            # Push notification
             firebase_service = FirebaseServiceV1()
             tokens = get_user_tokens_by_permissions("messenger.index")
             if len(tokens) > 0:
                 firebase_service.send_to_multiple_devices(
                     tokens=tokens,
                     title="Nuevo mensaje en Messenger",
-                    body=text,
+                    body=message_content,
                     data={'type': 'router', 'route_name': 'MessengerPage'}
                 )
-        
-        # Fechas en español
-        Fecha, Hora = get_date_time()
 
-        # Guardar el nuevo mensaje (Estado 2 = recibido)
+        # Guardar el mensaje
+        self._save_incoming_message(chat, sender_id, message_content, media_info)
+        
+        # Respuesta automática
+        if newChat:
+            template = MessengerPlantilla.objects.filter(
+                marca_id=setting.marca_id, 
+                estado=True, 
+                tipo=1
+            ).first()
+            if template:
+                self.send_message(setting, chat, template.mensaje)
+
+        # Open AI
+        if setting.openai and chat.openai:
+            self.open_ai_response(setting, chat)
+
+    def _process_media_attachment(self, attachment, media_type, setting, sender_id):
+        """
+        Procesa adjuntos multimedia de Messenger
+        """
+        try:
+            payload = attachment.get('payload', {})
+            media_url = payload.get('url')
+            
+            if not media_url:
+                print(f"No se encontró URL para {media_type}")
+                return None
+
+            media_info = {
+                'type': media_type,
+                'url': media_url,
+                'is_reusable': payload.get('is_reusable', False)
+            }
+
+            # Información específica por tipo
+            if media_type == 'image':
+                media_info['sticker_id'] = payload.get('sticker_id')
+            elif media_type == 'video':
+                media_info['is_reusable'] = payload.get('is_reusable', False)
+            elif media_type == 'file':
+                media_info['filename'] = payload.get('filename', 'archivo_sin_nombre')
+
+            # Descargar y guardar archivo
+            file_info = self._download_and_save_media(media_url, media_info, setting, sender_id)
+            if file_info:
+                media_info.update(file_info)
+
+            return media_info
+
+        except Exception as e:
+            print(f"Error procesando media {media_type}: {e}")
+            return None
+
+    def _download_and_save_media(self, media_url, media_info, setting, sender_id):
+        """
+        Descarga archivo de Messenger y lo guarda en Wasabi
+        """
+        try:
+            # Descargar archivo
+            response = requests.get(media_url, timeout=60)
+            if response.status_code != 200:
+                print(f"Error descargando archivo: {response.status_code}")
+                return None
+
+            # Determinar extensión y nombre de archivo
+            content_type = response.headers.get('content-type', '')
+            extension = self._get_file_extension_from_content_type(content_type, media_info)
+            
+            timestamp = int(timezone.now().timestamp())
+            filename = f"{timestamp}{extension}"
+            
+            # Ruta final en Wasabi
+            final_path = f"media/messenger/{sender_id}/{filename}"
+
+            # Guardar en Wasabi
+            wasabi_result = save_file_to_wasabi(
+                response.content,
+                final_path,
+                content_type or 'application/octet-stream'
+            )
+
+            if wasabi_result['success']:
+                file_size = len(response.content)
+                final_url = f"{settings.MEDIA_URL.rstrip('/')}/messenger/{sender_id}/{filename}"
+                
+                return {
+                    'local_path': final_url,
+                    'filename': filename,
+                    'size': file_size,
+                    'storage': 'wasabi',
+                    'content_type': content_type
+                }
+            else:
+                print(f"Error guardando en Wasabi: {wasabi_result['error']}")
+                return None
+
+        except Exception as e:
+            print(f"Error descargando/guardando archivo: {e}")
+            return None
+
+    def _get_file_extension_from_content_type(self, content_type, media_info):
+        """
+        Obtiene extensión del archivo basada en content-type
+        """
+        # Si es archivo y tiene nombre, usar su extensión
+        if media_info.get('type') == 'file' and media_info.get('filename'):
+            return os.path.splitext(media_info['filename'])[1]
+        
+        # Mapeo de content-type a extensión
+        content_type_to_ext = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/gif': '.gif',
+            'image/webp': '.webp',
+            'video/mp4': '.mp4',
+            'video/quicktime': '.mov',
+            'video/x-msvideo': '.avi',
+            'audio/mpeg': '.mp3',
+            'audio/mp4': '.mp4',
+            'audio/ogg': '.ogg',
+            'audio/wav': '.wav',
+            'application/pdf': '.pdf',
+            'application/msword': '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+            'application/vnd.ms-excel': '.xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+            'text/plain': '.txt',
+            'application/zip': '.zip',
+            'application/x-rar-compressed': '.rar',
+        }
+        
+        return content_type_to_ext.get(content_type, '')
+
+    def _save_incoming_message(self, chat, sender_id, message_content, media_info=None):
+        """
+        Guarda mensaje entrante en la base de datos
+        """
+        Fecha, Hora = get_date_time()
+        
+        url = None
+        extension_data = None
+        
+        if media_info:
+            url = media_info.get('local_path')
+            
+            extension_data = {
+                'name': media_info.get('filename', 'archivo'),
+                'size': media_info.get('size', 0),
+                'type': media_info.get('content_type', 'application/octet-stream'),
+                'extension': media_info.get('filename', '').split('.')[-1] if media_info.get('filename') else '',
+                'media_type': media_info.get('type'),
+                'is_reusable': media_info.get('is_reusable', False)
+            }
+            
+            # Información específica por tipo
+            if media_info.get('type') == 'image':
+                extension_data['sticker_id'] = media_info.get('sticker_id')
+
+        # Guardar mensaje
         new_msg = MessengerMensaje.objects.create(
-            IDChat    = chat.IDChat,
-            IDSender  = sender_id,
-            Mensaje   = text,
-            Fecha     = Fecha,
-            Hora      = Hora,
-            Estado    = 2
+            IDChat=chat.IDChat,
+            IDSender=sender_id,
+            Mensaje=message_content,
+            Fecha=Fecha,
+            Hora=Hora,
+            Url=url,
+            Extencion=json.dumps(extension_data) if extension_data else None,
+            Estado=2
         )
 
         # Actualizar chat
-        user_name = user_name or 'Usuario desconocido'  # Esto cubre None y string vacío
+        user_name = chat.Nombre or 'Usuario desconocido'
         if user_name == 'Usuario desconocido':
             nombreChat = f'Usuario desconocido {chat.IDChat}'
         else:
             nombreChat = user_name
 
-        chat.Nombre  = nombreChat
+        chat.Nombre = nombreChat
         chat.updated_at = get_naive_peru_time()
         chat.save()
 
@@ -165,35 +385,32 @@ class WebhookVerifyReceive(APIView):
             Estado=1
         ).update(Estado=3)
 
-        #respuesta automatica
-        if newChat:
-            template = MessengerPlantilla.objects.filter(marca_id=setting.marca_id, estado=True, tipo=1).first()
-            if template:
-                self.send_message(setting, chat, template.mensaje)
-        
-        #open AI
-        if setting.openai and chat.openai:
-            self.open_ai_response(setting, chat)
-
+        return new_msg
 
     def open_ai_response(self, setting, chat):
-        ultimos_mensajes = list(MessengerMensaje.objects.order_by('-IDChatMensaje')[:4])
+        """
+        Genera respuesta usando OpenAI
+        """
+        ultimos_mensajes = list(MessengerMensaje.objects.filter(
+            IDChat=chat.IDChat
+        ).order_by('-IDChatMensaje')[:4])
         ultimos_mensajes.reverse()
         
         messages = []
         
         for entry in ultimos_mensajes:
-            # Si IDSender coincide con el admin, es rol 'assistant'; si no, es 'user'
             role = "assistant" if entry.IDSender == setting.IDSender else "user"
             messages.append({"role": role, "content": entry.Mensaje})
         
         res = chatbot.get_response(setting.marca_id, messages)
         self.send_message(setting, chat, res, 2)
 
-    def send_message(self, setting, chat, mensaje, origen = 1):
+    def send_message(self, setting, chat, mensaje, origen=1):
+        """
+        Envía mensaje usando MessengerSendView
+        """
         Fecha, Hora = get_date_time()
 
-        # 1. Prepara los datos que necesitas enviar
         message_data = {
             "IDRedSocial": setting.IDRedSocial,
             "tokenHook": setting.TokenHook,  
@@ -206,18 +423,14 @@ class WebhookVerifyReceive(APIView):
             "origen": origen,
         }
         
-        # Crear una request factory
         factory = RequestFactory()
-        # Crear WSGIRequest con JSON data
         django_request = factory.post(
             '/api/messenger-app/send-message/',
             data=json.dumps(message_data),
             content_type='application/json'
         )
         
-        # Convertir a DRF Request con parser específico
         drf_request = Request(django_request, parsers=[JSONParser()])
-        # Llamar directamente a la vista
         view = MessengerSendView()
         response = view.post(drf_request)
         

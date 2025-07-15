@@ -1,4 +1,6 @@
 from django.db import models
+from apps.users.models import Users
+from django.utils import timezone
 
 # Create your models here.
 
@@ -23,7 +25,7 @@ class WhatsappConfiguracion(models.Model):
         verbose_name_plural = 'WhatsApp Configuracion'
 
     def __str__(self):
-        return self.Nombre or f"Config {self.IDRedSocial}"
+        return f"Id: {self.IDRedSocial} - {self.Nombre} - {self.Telefono}"
 
 
 class Whatsapp(models.Model):
@@ -120,15 +122,18 @@ class WhatsappMetaPlantillas(models.Model):
         verbose_name_plural = 'WhatsApp Meta Plantillas'
 
     def __str__(self):
-        return f"{self.nombre} - {self.lenguaje}"
+        return f"({self.lenguaje}) - {self.nombre} - Descripción: {self.descripcion}"
     
 class WhatsappPlantillaResumen(models.Model):
     id          = models.AutoField(primary_key=True, db_column='id')
     whatsapp_meta_plantillas_id = models.ForeignKey(WhatsappMetaPlantillas, on_delete=models.PROTECT, db_column='whatsapp_meta_plantillas_id', related_name='plantillas')
-    enviados    = models.CharField(max_length=100, null=True, blank=True, db_column='enviados')
-    exitosos    = models.CharField(max_length=255, null=True, blank=True, db_column='exitosos')
-    fallidos    = models.CharField(max_length=40, null=True, blank=True, db_column='fallidos')
+    enviados    = models.IntegerField(null=True, blank=True, db_column='enviados')
+    exitosos    = models.IntegerField(null=True, blank=True, db_column='exitosos')
+    fallidos    = models.IntegerField(null=True, blank=True, db_column='fallidos')
+    origen_datos = models.CharField(max_length=50, null=True, blank=True, db_column='origen_datos')
     estado      = models.IntegerField(default=1, db_column='estado')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'whatsapp_plantilla_resumen'
@@ -136,3 +141,15 @@ class WhatsappPlantillaResumen(models.Model):
 
     def __str__(self):
         return f"id: {self.id} - exitosos: {self.exitosos} - fallidos: {self.fallidos}"
+
+class WhatsappConfiguracionUser(models.Model):
+    id = models.AutoField(primary_key=True)
+    IDRedSocial = models.IntegerField()
+    user_id = models.IntegerField()
+
+    class Meta:
+        db_table = 'whatsapp_configuracion_user'
+        verbose_name_plural = 'WhatsApp Configuracion Usuario'
+        
+    def __str__(self):
+        return f"WhatsApp {self.IDRedSocial} - Usuario {self.user_id}"

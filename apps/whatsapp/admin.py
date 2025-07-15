@@ -6,6 +6,8 @@ from .models import (
     Niveles,
     ChatNiveles,
     WhatsappMetaPlantillas,
+    WhatsappPlantillaResumen,
+    WhatsappConfiguracionUser,
 )
 
 # Register your models here.
@@ -15,3 +17,5 @@ admin.site.register(WhatsappMensajes)
 admin.site.register(Niveles)
 admin.site.register(ChatNiveles)
 admin.site.register(WhatsappMetaPlantillas)
+admin.site.register(WhatsappPlantillaResumen)
+admin.site.register(WhatsappConfiguracionUser)
