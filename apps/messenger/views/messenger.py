@@ -93,7 +93,7 @@ class MessengerSettingList(APIView):
     GET /api/messenger/setting/
     """
     def get(self, request):
-        qs = MessengerConfiguracion.objects.all()
+        qs = MessengerConfiguracion.objects.filter(Estado=1)
         serializer = MessengerConfiguracionSerializer(qs, many=True)
         return Response({'data': serializer.data})
 

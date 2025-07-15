@@ -134,7 +134,7 @@ class WhatsappWebhookAPIView(APIView):
             profile = contacts[0].get('profile', {})
             name = profile.get('name', phone)
 
-        chat = self._get_or_create_chat(setting, phone, name)
+        chat = self._get_or_create_chat(setting, phone, name, message_content)
         self._save_incoming_message(chat, phone, message_content, media_info, button_id)
         self._handle_auto_response(setting, chat, message_content)
 
@@ -256,7 +256,7 @@ class WhatsappWebhookAPIView(APIView):
         mime_type = media_info.get('mime_type', '')
         return mime_to_ext.get(mime_type, '')
 
-    def _get_or_create_chat(self, setting, phone, name):
+    def _get_or_create_chat(self, setting, phone, name, message_content):
         """
         Obtiene o crea un chat
         """
@@ -278,7 +278,7 @@ class WhatsappWebhookAPIView(APIView):
                 firebase_service.send_to_multiple_devices(
                     tokens=tokens,
                     title="Nuevo mensaje en WhatsApp",
-                    body=f"Nuevo mensaje de {name}",
+                    body=message_content,
                     data={'type': 'router', 'route_name': 'WhatsappPage'}
                 )
         else:

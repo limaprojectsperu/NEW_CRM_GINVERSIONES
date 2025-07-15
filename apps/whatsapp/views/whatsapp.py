@@ -85,7 +85,7 @@ class WhatsappSettingList(APIView):
     GET /api/whatsapp/setting/
     """
     def get(self, request):
-        qs = WhatsappConfiguracion.objects.all()
+        qs = WhatsappConfiguracion.objects.filter(Estado=1)
         serializer = WhatsappConfiguracionSerializer(qs, many=True)
         return Response({'data': serializer.data})
 
