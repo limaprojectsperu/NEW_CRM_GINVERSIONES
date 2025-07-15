@@ -66,6 +66,7 @@ class WhatsappWebhookAPIView(APIView):
         message_type = message_obj.get('type')
         
         print(f"Tipo de mensaje: {message_type}")
+        print(f"Mensaje completo: {json.dumps(message_obj, indent=2)}")
 
         message_content = ""
         button_id = None
