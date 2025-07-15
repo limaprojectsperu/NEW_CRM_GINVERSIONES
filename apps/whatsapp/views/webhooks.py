@@ -66,6 +66,7 @@ class WhatsappWebhookAPIView(APIView):
         message_type = message_obj.get('type')
         
         print(f"Tipo de mensaje: {message_type}")
+        print(f"Mensaje completo: {json.dumps(message_obj, indent=2)}")
 
         # Obtener configuración primero
         phone_admin = change['metadata']['display_phone_number']
@@ -217,7 +218,7 @@ class WhatsappWebhookAPIView(APIView):
             }
             
             # Construir URL correcta para obtener info del media
-            url_info = f"https://graph.facebook.com/v18.0/{media_id}"
+            url_info = f"{setting.url_graph_v}/{media_id}"
             print(f"Obteniendo info del archivo desde: {url_info}")
             
             response = requests.get(url_info, headers=headers, timeout=30)
