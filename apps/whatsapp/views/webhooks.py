@@ -66,7 +66,13 @@ class WhatsappWebhookAPIView(APIView):
         message_type = message_obj.get('type')
         
         print(f"Tipo de mensaje: {message_type}")
-        print(f"Mensaje completo: {json.dumps(message_obj, indent=2)}")
+
+        # Obtener configuración primero
+        phone_admin = change['metadata']['display_phone_number']
+        setting = WhatsappConfiguracion.objects.filter(Telefono=phone_admin).first()
+        if not setting:
+            print(f"No se encontró configuración para el teléfono: {phone_admin}")
+            return 
 
         message_content = ""
         button_id = None
@@ -98,28 +104,31 @@ class WhatsappWebhookAPIView(APIView):
         
         # NUEVOS TIPOS DE MENSAJES MULTIMEDIA
         elif message_type == 'image':
-            media_info = self._process_media_message(message_obj, 'image')
-            message_content = media_info.get('caption', '[Imagen]')
+            media_info = self._process_media_message(message_obj, 'image', setting)
+            message_content = media_info.get('caption', '[Imagen]') if media_info else '[Imagen]'
         
         elif message_type == 'audio':
-            media_info = self._process_media_message(message_obj, 'audio')
+            media_info = self._process_media_message(message_obj, 'audio', setting)
             message_content = '[Audio]'
         
         elif message_type == 'video':
-            media_info = self._process_media_message(message_obj, 'video')
-            message_content = media_info.get('caption', '[Video]')
+            media_info = self._process_media_message(message_obj, 'video', setting)
+            message_content = media_info.get('caption', '[Video]') if media_info else '[Video]'
         
         elif message_type == 'document':
-            media_info = self._process_media_message(message_obj, 'document')
-            filename = media_info.get('filename', 'documento')
-            message_content = f'[Documento: {filename}]'
+            media_info = self._process_media_message(message_obj, 'document', setting)
+            if media_info:
+                filename = media_info.get('filename', 'documento')
+                message_content = f'[Documento: {filename}]'
+            else:
+                message_content = '[Documento]'
         
         elif message_type == 'voice':
-            media_info = self._process_media_message(message_obj, 'voice')
+            media_info = self._process_media_message(message_obj, 'voice', setting)
             message_content = '[Nota de voz]'
         
         elif message_type == 'sticker':
-            media_info = self._process_media_message(message_obj, 'sticker')
+            media_info = self._process_media_message(message_obj, 'sticker', setting)
             message_content = '[Sticker]'
         
         else:
@@ -132,7 +141,6 @@ class WhatsappWebhookAPIView(APIView):
             return
 
         # Obtener datos del mensaje
-        phone_admin = change['metadata']['display_phone_number']
         phone = message_obj['from']
         
         # Obtener nombre del contacto
@@ -141,11 +149,6 @@ class WhatsappWebhookAPIView(APIView):
         if contacts and len(contacts) > 0:
             profile = contacts[0].get('profile', {})
             name = profile.get('name', phone)
-
-        # Obtener configuración
-        setting = WhatsappConfiguracion.objects.filter(Telefono=phone_admin).first()
-        if not setting:
-            return 
 
         # Crear o actualizar el chat
         chat = self._get_or_create_chat(setting, phone, name)
@@ -158,7 +161,7 @@ class WhatsappWebhookAPIView(APIView):
 
         pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
 
-    def _process_media_message(self, message_obj, media_type):
+    def _process_media_message(self, message_obj, media_type, setting):
         """
         Procesa mensajes multimedia y descarga/almacena archivos
         """
@@ -193,7 +196,7 @@ class WhatsappWebhookAPIView(APIView):
                 media_info['filename'] = media_data.get('filename')
 
             # Descargar y guardar archivo
-            file_info = self._download_and_save_media(media_id, media_info)
+            file_info = self._download_and_save_media(media_id, media_info, setting)
             if file_info:
                 media_info.update(file_info)
 
@@ -203,28 +206,25 @@ class WhatsappWebhookAPIView(APIView):
             print(f"Error procesando media {media_type}: {e}")
             return None
 
-    def _download_and_save_media(self, media_id, media_info):
+    def _download_and_save_media(self, media_id, media_info, setting):
         """
         Descarga archivo de WhatsApp API y lo guarda en Wasabi
         """
         try:
-            # Obtener configuración para el token
-            setting = WhatsappConfiguracion.objects.filter(Estado=1).first()
-            if not setting:
-                print("No se encontró configuración de WhatsApp")
-                return None
-
             # 1. Obtener URL del archivo desde WhatsApp API
             headers = {
                 'Authorization': f'Bearer {setting.Token}',
-                'Content-Type': 'application/json'
             }
             
-            url_info = f"{setting.urlApi}/{media_id}"
+            # Construir URL correcta para obtener info del media
+            url_info = f"https://graph.facebook.com/v18.0/{media_id}"
+            print(f"Obteniendo info del archivo desde: {url_info}")
+            
             response = requests.get(url_info, headers=headers, timeout=30)
             
             if response.status_code != 200:
                 print(f"Error obteniendo info del archivo: {response.status_code}")
+                print(f"Respuesta: {response.text}")
                 return None
 
             file_info = response.json()
@@ -239,6 +239,7 @@ class WhatsappWebhookAPIView(APIView):
             
             if file_response.status_code != 200:
                 print(f"Error descargando archivo: {file_response.status_code}")
+                print(f"Respuesta: {file_response.text}")
                 return None
 
             # 3. Generar nombre y ruta del archivo
@@ -246,27 +247,27 @@ class WhatsappWebhookAPIView(APIView):
             extension = self._get_file_extension(media_info)
             filename = f"{timestamp}{extension}"
             
-            # Usar teléfono como carpeta (se obtendrá del contexto)
-            telefono = "temp"  # Se actualizará al guardar el mensaje
-            rel_path = f"media/whatsapp/{telefono}/{filename}"
+            # Crear nombre temporal primero
+            temp_path = f"media/whatsapp/temp/{filename}"
 
             # 4. Guardar en Wasabi
             wasabi_result = save_file_to_wasabi(
                 file_response.content,
-                rel_path,
+                temp_path,
                 media_info.get('mime_type', 'application/octet-stream')
             )
 
             if wasabi_result['success']:
                 # Construir información del archivo guardado
                 file_size = len(file_response.content)
-                file_url = f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/{telefono}/{filename}"
+                file_url = f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/temp/{filename}"
                 
                 return {
                     'local_path': file_url,
                     'filename': filename,
                     'size': file_size,
-                    'storage': 'wasabi'
+                    'storage': 'wasabi',
+                    'temp_path': temp_path
                 }
             else:
                 print(f"Error guardando en Wasabi: {wasabi_result['error']}")
@@ -361,8 +362,8 @@ class WhatsappWebhookAPIView(APIView):
             # Actualizar path con teléfono correcto
             if url:
                 url = url.replace('/temp/', f'/{phone}/')
-                # Actualizar también en Wasabi si es necesario
-                self._update_media_path(media_info, phone)
+                # Mover archivo a la carpeta correcta
+                self._move_media_file(media_info, phone)
             
             # Crear datos de extensión como JSON
             extension_data = {
@@ -405,24 +406,39 @@ class WhatsappWebhookAPIView(APIView):
 
         return mensaje_guardado
 
-    def _update_media_path(self, media_info, phone):
+    def _move_media_file(self, media_info, phone):
         """
-        Actualiza la ruta del archivo en Wasabi con el teléfono correcto
+        Mueve el archivo de la carpeta temporal a la carpeta del teléfono
         """
         if not media_info or not media_info.get('filename'):
             return
             
         try:
-            # Obtener archivo temporal
+            # Rutas
             temp_path = f"media/whatsapp/temp/{media_info['filename']}"
             final_path = f"media/whatsapp/{phone}/{media_info['filename']}"
             
-            # Aquí podrías implementar la lógica para mover el archivo
-            # Por ahora, el archivo ya está guardado correctamente
-            pass
+            # Leer archivo de la ruta temporal
+            from apps.users.views.wasabi import get_wasabi_file_data
+            file_result = get_wasabi_file_data(f"{settings.MEDIA_URL.rstrip('/')}/whatsapp/temp/{media_info['filename']}")
+            
+            if file_result['success']:
+                # Guardar en la nueva ubicación
+                wasabi_result = save_file_to_wasabi(
+                    file_result['file_data'],
+                    final_path,
+                    media_info.get('mime_type', 'application/octet-stream')
+                )
+                
+                if wasabi_result['success']:
+                    print(f"Archivo movido exitosamente a: {final_path}")
+                    # Opcionalmente eliminar el archivo temporal
+                    # self._delete_temp_file(temp_path)
+                else:
+                    print(f"Error moviendo archivo: {wasabi_result['error']}")
             
         except Exception as e:
-            print(f"Error actualizando ruta de media: {e}")
+            print(f"Error moviendo archivo de media: {e}")
 
     def _handle_auto_response(self, setting, chat, message_content):
         """

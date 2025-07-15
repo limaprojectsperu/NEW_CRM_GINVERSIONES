@@ -9,7 +9,7 @@ class WhatsappConfiguracion(models.Model):
     Nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
     Token       = models.CharField(max_length=255, null=True, blank=True, db_column='Token', help_text='Token')
     TokenHook   = models.CharField(max_length=50, null=True, blank=True, db_column='TokenHook', help_text='TokenHook')
-    urlHook     = models.CharField(max_length=100, null=True, blank=True, db_column='urlHook')
+    url_graph_v = models.CharField(max_length=100, null=True, blank=True, db_column='url_graph_v')
     urlApi      = models.CharField(max_length=100, null=True, blank=True, db_column='urlApi', help_text='urlApi')
     Template    = models.CharField(max_length=100, null=True, blank=True, db_column='Template')
     Language    = models.CharField(max_length=40, null=True, blank=True, db_column='Language')

@@ -61,15 +61,15 @@ class WebhookVerifyReceive(APIView):
         pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
 
-    def _get_user_name(self, sender_id, token):
+    def _get_user_name(self, sender_id, setting):
         """
         Reemplaza la llamada curl a /{sender_id}?fields=name
         """
-        url = f"https://graph.facebook.com/{sender_id}"
+        url = f"{setting.url_graph_v}/{sender_id}"
         try:
             resp = requests.get(url, params={
                 'fields': 'name',
-                'access_token': token
+                'access_token': setting.Token
             }, timeout=5)
             
             if resp.status_code == 200:
@@ -113,7 +113,7 @@ class WebhookVerifyReceive(APIView):
             user_name = chat.Nombre
         else:
             # Obtener nombre de usuario desde la API
-            user_name = self._get_user_name(sender_id, setting.Token)
+            user_name = self._get_user_name(sender_id, setting)
             chat = Messenger.objects.create(
                 IDRedSocial=IDRedSocial,
                 IDSender=sender_id,

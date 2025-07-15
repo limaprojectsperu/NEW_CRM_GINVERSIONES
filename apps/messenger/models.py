@@ -10,7 +10,7 @@ class MessengerConfiguracion(models.Model):
     Nombre       = models.CharField(max_length=50, null=True, blank=True, db_column='Nombre')
     Token        = models.CharField(max_length=255, null=True, blank=True, db_column='Token', help_text='Token')
     TokenHook    = models.CharField(max_length=50, null=True, blank=True, db_column='TokenHook')
-    urlHook      = models.CharField(max_length=100, null=True, blank=True, db_column='urlHook')
+    url_graph_v  = models.CharField(max_length=100, null=True, blank=True, db_column='url_graph_v')
     urlApi       = models.CharField(max_length=100, null=True, blank=True, db_column='urlApi', help_text='urlApi')
     logo         = models.CharField(max_length=150, null=True, blank=True, db_column='logo')
     Estado       = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado')
