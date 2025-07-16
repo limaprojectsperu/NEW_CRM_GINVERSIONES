@@ -303,7 +303,8 @@ class WhatsappSendAPIView(APIView):
             Hora      = request.data.get('Hora'),
             Url       = url,
             Extencion = request.data.get('Extencion'),
-            Estado    = 1
+            Estado    = 1,
+            user_id   = request.headers.get('userid', None)
         )
         
         # Actualizar timestamp del chat

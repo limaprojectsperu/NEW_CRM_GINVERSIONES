@@ -260,7 +260,8 @@ class MessengerSendView(APIView):
             Url       = url,
             Extencion = request.data.get('Extencion'),
             Estado    = 1,
-            origen = request.data.get('origen', 1)
+            origen = request.data.get('origen', 1),
+            user_id = request.headers.get('userid', None)
         )
 
         Messenger.objects.filter(IDChat=request.data.get('IDChat')).update(

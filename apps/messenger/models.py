@@ -16,7 +16,8 @@ class MessengerConfiguracion(models.Model):
     Estado       = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado')
     openai       = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
-
+    enviar_quien_escribio = models.BooleanField(default=False) 
+    
     class Meta:
         db_table = 'MessengerConfiguracion'
         verbose_name_plural = 'Messenger Configuracion'
@@ -29,6 +30,7 @@ class Messenger(models.Model):
     IDRedSocial = models.IntegerField(default=1, db_column='IDRedSocial')
     IDSender    = models.CharField(max_length=50, null=True, blank=True, db_column='IDSender')
     Nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
+    created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(null=True, blank=True, db_column='updated_at')
     Avatar      = models.CharField(max_length=100, null=True, blank=True, db_column='Avatar')
     IDEL        = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID estado')
@@ -49,6 +51,7 @@ class MessengerMensaje(models.Model):
     IDChatMensaje = models.AutoField(primary_key=True, db_column='IDChatMensaje', help_text='Id del Mensaje')
     IDChat        = models.IntegerField(verbose_name='ID del Chat')
     IDSender      = models.CharField(max_length=50, null=True, blank=True, db_column='IDSender')
+    user_id       = models.IntegerField(null=True, blank=True, db_column='user_id')
     Mensaje       = models.CharField(max_length=2000, null=True, blank=True, db_column='Mensaje', help_text='Mensaje')
     Fecha         = models.CharField(max_length=50, null=True, blank=True, db_column='Fecha', help_text='Fecha del Mensaje')
     Hora          = models.CharField(max_length=50, null=True, blank=True, db_column='Hora', help_text='Hora del Mensaje')

@@ -19,6 +19,7 @@ class WhatsappConfiguracion(models.Model):
     Estado      = models.IntegerField(default=1, db_column='Estado', help_text='Estado del telefono asociado')
     openai      = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
+    enviar_quien_escribio = models.BooleanField(default=False) 
 
     class Meta:
         db_table = 'whatsapp_configuracion'
@@ -27,6 +28,17 @@ class WhatsappConfiguracion(models.Model):
     def __str__(self):
         return f"Id: {self.IDRedSocial} - {self.Nombre} - {self.Telefono}"
 
+class WhatsappConfiguracionUser(models.Model):
+    id = models.AutoField(primary_key=True)
+    IDRedSocial = models.IntegerField()
+    user_id = models.IntegerField()
+
+    class Meta:
+        db_table = 'whatsapp_configuracion_user'
+        verbose_name_plural = 'WhatsApp Configuracion Usuario'
+        
+    def __str__(self):
+        return f"WhatsApp {self.IDRedSocial} - Usuario {self.user_id}"
 
 class Whatsapp(models.Model):
     IDChat               = models.AutoField(primary_key=True, db_column='IDChat')
@@ -34,6 +46,7 @@ class Whatsapp(models.Model):
     Nombre               = models.CharField(max_length=100, null=True, blank=True, db_column='Nombre')
     Telefono             = models.CharField(max_length=50, null=True, blank=True, db_column='Telefono')
     FechaUltimaPlantilla = models.DateTimeField(null=True, blank=True, db_column='FechaUltimaPlantilla')
+    created_at           = models.DateTimeField(auto_now_add=True)
     updated_at           = models.DateTimeField(null=True, blank=True, db_column='updated_at')
     Avatar               = models.CharField(max_length=100, null=True, blank=True, db_column='Avatar')
     IDEL                 = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID lead estado')
@@ -55,6 +68,7 @@ class WhatsappMensajes(models.Model):
     IDChatMensaje = models.AutoField(primary_key=True, db_column='IDChatMensaje', help_text='Id del Mensaje')
     IDChat        = models.IntegerField(verbose_name='ID del Chat', help_text='ID del Chat')
     Telefono      = models.CharField(max_length=50, null=True, blank=True, db_column='Telefono', help_text='Telefono del Emisor/Receptor del Mensaje')
+    user_id       = models.IntegerField(null=True, blank=True, db_column='user_id')
     Mensaje       = models.CharField(max_length=2000, null=True, blank=True, db_column='Mensaje', help_text='Mensaje')
     Fecha         = models.CharField(max_length=50, null=True, blank=True, db_column='Fecha', help_text='Fecha del Mensaje')
     Hora          = models.CharField(max_length=50, null=True, blank=True, db_column='Hora', help_text='Hora del Mensaje')
@@ -113,6 +127,7 @@ class WhatsappMetaPlantillas(models.Model):
     media_url   = models.CharField(max_length=150, null=True, blank=True, db_column='media_url')
     variables   = models.IntegerField(null=True, blank=True, db_column='variables')
     nombre_variables = models.CharField(max_length=255, null=True, blank=True, db_column='nombre_variables')
+    variables_obligatorio = models.CharField(max_length=50, null=True, blank=True, db_column='variables_obligatorio')
     usuario_index = models.IntegerField(null=True, blank=True, db_column='usuario_index')
     tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
     estado      = models.IntegerField(default=1, db_column='estado')
@@ -132,8 +147,8 @@ class WhatsappPlantillaResumen(models.Model):
     fallidos    = models.IntegerField(null=True, blank=True, db_column='fallidos')
     origen_datos = models.CharField(max_length=50, null=True, blank=True, db_column='origen_datos')
     estado      = models.IntegerField(default=1, db_column='estado')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'whatsapp_plantilla_resumen'
@@ -141,15 +156,3 @@ class WhatsappPlantillaResumen(models.Model):
 
     def __str__(self):
         return f"id: {self.id} - exitosos: {self.exitosos} - fallidos: {self.fallidos}"
-
-class WhatsappConfiguracionUser(models.Model):
-    id = models.AutoField(primary_key=True)
-    IDRedSocial = models.IntegerField()
-    user_id = models.IntegerField()
-
-    class Meta:
-        db_table = 'whatsapp_configuracion_user'
-        verbose_name_plural = 'WhatsApp Configuracion Usuario'
-        
-    def __str__(self):
-        return f"WhatsApp {self.IDRedSocial} - Usuario {self.user_id}"
