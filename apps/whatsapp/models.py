@@ -120,6 +120,7 @@ class ChatNiveles(models.Model):
 
 class WhatsappMetaPlantillas(models.Model):
     id          = models.AutoField(primary_key=True, db_column='id')
+    marca_id    = models.IntegerField(db_column='marca_id')
     nombre      = models.CharField(max_length=100, null=True, blank=True, db_column='nombre')
     descripcion = models.CharField(max_length=255, null=True, blank=True, db_column='descripcion')
     lenguaje    = models.CharField(max_length=40, null=True, blank=True, db_column='lenguaje')

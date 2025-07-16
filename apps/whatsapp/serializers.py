@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen
+from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser
 from apps.redes_sociales.models import Marca 
 
 class WhatsappMensajesSerializer(serializers.ModelSerializer):
@@ -49,7 +49,12 @@ class WhatsappConfiguracionSerializer(serializers.ModelSerializer):
             }
         except Marca.DoesNotExist:
             return None
-
+        
+class WhatsappConfiguracionUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsappConfiguracionUser
+        fields = '__all__'
+        
 class NivelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Niveles

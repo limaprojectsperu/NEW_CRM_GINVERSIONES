@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
-from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion
+from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion, WhatsappConfiguracionUser
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
@@ -86,6 +86,23 @@ class WhatsappSettingList(APIView):
     """
     def get(self, request):
         qs = WhatsappConfiguracion.objects.filter(Estado=1)
+        serializer = WhatsappConfiguracionSerializer(qs, many=True)
+        return Response({'data': serializer.data})
+
+class WhatsappSettingUser(APIView):
+    """
+    GET /api/whatsapp/setting/{id}
+    """
+    def get(self, request, id):
+        whatsapp_ids_for_user = WhatsappConfiguracionUser.objects.filter(
+            user_id=id
+         ).values_list('IDRedSocial', flat=True)
+
+        qs = WhatsappConfiguracion.objects.filter(
+            Estado=1,
+            IDRedSocial__in=whatsapp_ids_for_user # '__in' permite filtrar por una lista de valores
+        ).order_by('IDRedSocial') 
+
         serializer = WhatsappConfiguracionSerializer(qs, many=True)
         return Response({'data': serializer.data})
 

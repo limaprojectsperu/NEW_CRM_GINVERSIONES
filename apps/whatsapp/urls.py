@@ -3,13 +3,14 @@ from .views.webhooks import WhatsappWebhookAPIView
 from .views.whatsapp_app import WhatsappSendAPIView
 from .views.whatsapp import (
     WhatsappListAll, WhatsappList, WhatsappStore, WhatsappShow, WhatsappSettingList,
-    WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, WhatsappUpdateOpenai,
-    WhatsappDestroy
+    WhatsappSettingUser, WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, 
+    WhatsappUpdateOpenai, WhatsappDestroy
 )
 from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
 from .views.whatsapp_bulk import WhatsappBulkSendAPIView
 from .views.summary_template import WhatsappMetaPlantillasViewSet, WhatsappPlantillaResumenViewSet
+from .views.whatsapp_user import WhatsappConfiguracionUserViewSet
 
 nivel_list = NivelViewSet.as_view({
     'get':  'list',
@@ -34,6 +35,7 @@ urlpatterns = [
     path('whatsapp/store', WhatsappStore.as_view(),       name='whatsapp-store'),
     path('whatsapp/message/<int:id>', WhatsappShow.as_view(),   name='whatsapp-show'),
     path('whatsapp/setting', WhatsappSettingList.as_view()),
+    path('whatsapp/setting/<int:id>', WhatsappSettingUser.as_view()),
     path('whatsapp/update-lead/<int:id>',    WhatsappUpdateLead.as_view()),
     path('whatsapp/update-chat/<int:id>', WhatsappUpdate.as_view(),    name='whatsapp-update'),
     path('whatsapp/update-date/<int:id>', WhatsappUpdateDate.as_view(), name='whatsapp-update-date'),
@@ -55,26 +57,19 @@ urlpatterns = [
     path('whatsapp/send-bulk-message', WhatsappBulkSendAPIView.as_view(), name='whatsapp-bulk-send'),
 
     # APIs para WhatsappMetaPlantillas
-    path('whatsapp-meta-plantillas-all', WhatsappMetaPlantillasViewSet.as_view({ 'get': 'listAll' })),
-    path('whatsapp-meta-plantillas', WhatsappMetaPlantillasViewSet.as_view({
-        'get': 'list',
-        #'post': 'create'
+    path('whatsapp-meta-plantillas/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({
+        'get': 'list'
         }), name='whatsapp-meta-plantillas-list'),
-    #path('whatsapp-meta-plantillas/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({
-        #'put': 'update',
-        #'delete': 'destroy'
-        #}), name='whatsapp-meta-plantillas-detail'),
-    #path('whatsapp-meta-plantillas/estado/<int:pk>', WhatsappMetaPlantillasViewSet.as_view({ 'put': 'updateState' })),
     
     # APIs para WhatsappPlantillaResumen
     path('whatsapp-plantilla-resumen', WhatsappPlantillaResumenViewSet.as_view({
-        'get': 'list',
-        #'post': 'create'
+        'get': 'list'
         }), name='whatsapp-plantilla-resumen-list'),
-    #path('whatsapp-plantilla-resumen/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({
-        #'put': 'update',
-        #'delete': 'destroy'
-        #}), name='whatsapp-plantilla-resumen-detail'),
-    #path('whatsapp-plantilla-resumen/estado/<int:pk>', WhatsappPlantillaResumenViewSet.as_view({ 'put': 'updateState' })),
+
+    # APIs para WhatsappConfiguracionUser
+    path('whatsapp-configuracion-user/<int:pk>', WhatsappConfiguracionUserViewSet.as_view({
+        'get': 'show',
+        'put': 'update'
+    }), name='whatsapp-configuracion-user-detail'),
 
 ]
