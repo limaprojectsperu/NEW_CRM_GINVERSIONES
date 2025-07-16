@@ -12,7 +12,7 @@ from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.datetime_func import get_date_time, get_naive_peru_time
-from apps.utils.tokens_phone import get_user_tokens_by_permissions
+from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
 from apps.openai.openai_chatbot import ChatbotService
 from django.test import RequestFactory
 from rest_framework.request import Request
@@ -134,9 +134,20 @@ class WhatsappWebhookAPIView(APIView):
             profile = contacts[0].get('profile', {})
             name = profile.get('name', phone)
 
-        chat = self._get_or_create_chat(setting, phone, name, message_content)
+        chat = self._get_or_create_chat(setting, phone, name)
         self._save_incoming_message(chat, phone, message_content, media_info, button_id)
         self._handle_auto_response(setting, chat, message_content)
+
+        # Push notification
+        firebase_service = FirebaseServiceV1()
+        tokens = get_user_tokens_by_whatsapp(setting.IDRedSocial)
+        if len(tokens) > 0:
+            firebase_service.send_to_multiple_devices(
+                tokens=tokens,
+                title="Nuevo mensaje en WhatsApp",
+                body=message_content,
+                data={'type': 'router', 'route_name': 'WhatsappPage'}
+            )
 
         pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
 
@@ -256,7 +267,7 @@ class WhatsappWebhookAPIView(APIView):
         mime_type = media_info.get('mime_type', '')
         return mime_to_ext.get(mime_type, '')
 
-    def _get_or_create_chat(self, setting, phone, name, message_content):
+    def _get_or_create_chat(self, setting, phone, name):
         """
         Obtiene o crea un chat
         """
@@ -272,19 +283,10 @@ class WhatsappWebhookAPIView(APIView):
         
         if created:
             chat.nuevos_mensajes = 1
-            firebase_service = FirebaseServiceV1()
-            tokens = get_user_tokens_by_permissions("messenger.index")
-            if len(tokens) > 0:
-                firebase_service.send_to_multiple_devices(
-                    tokens=tokens,
-                    title="Nuevo mensaje en WhatsApp",
-                    body=message_content,
-                    data={'type': 'router', 'route_name': 'WhatsappPage'}
-                )
         else:
             chat.nuevos_mensajes = chat.nuevos_mensajes + 1
-        
         chat.save()
+
         return chat
 
     def _save_incoming_message(self, chat, phone, message_content, media_info=None, button_id=None):

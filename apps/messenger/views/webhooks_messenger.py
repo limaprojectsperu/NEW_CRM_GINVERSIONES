@@ -60,7 +60,6 @@ class WebhookVerifyReceive(APIView):
             print(f"Error al procesar el payload de Messenger: {e}")
             return Response({'status': 'error processing payload but acknowledged'})
 
-        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
         return Response({'status': 'ok'})
 
     def _get_user_name(self, sender_id, setting):
@@ -186,17 +185,6 @@ class WebhookVerifyReceive(APIView):
             )
             newChat = True
 
-            # Push notification
-            firebase_service = FirebaseServiceV1()
-            tokens = get_user_tokens_by_permissions("messenger.index")
-            if len(tokens) > 0:
-                firebase_service.send_to_multiple_devices(
-                    tokens=tokens,
-                    title="Nuevo mensaje en Messenger",
-                    body=message_content,
-                    data={'type': 'router', 'route_name': 'MessengerPage'}
-                )
-
         # Guardar el mensaje
         self._save_incoming_message(chat, sender_id, message_content, media_info)
         
@@ -213,6 +201,20 @@ class WebhookVerifyReceive(APIView):
         # Open AI
         if setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
+
+        # Push notification
+        firebase_service = FirebaseServiceV1()
+        tokens = get_user_tokens_by_permissions("messenger.index")
+        if len(tokens) > 0:
+            firebase_service.send_to_multiple_devices(
+                tokens=tokens,
+                title="Nuevo mensaje en Messenger",
+                body=message_content,
+                data={'type': 'router', 'route_name': 'MessengerPage'}
+            )
+
+        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
+
 
     def _process_media_attachment(self, attachment, media_type, setting, sender_id):
         """

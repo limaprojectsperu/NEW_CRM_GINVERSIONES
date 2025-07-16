@@ -1,8 +1,10 @@
 from django.db import connection
 from apps.users.models import UserTokens
+from apps.whatsapp.models import WhatsappConfiguracionUser
 
 # Método alternativo usando SQL raw (más eficiente para consultas complejas)
 def get_user_tokens_by_permissions(permission):
+
     try:
         query = """
         SELECT ut.token
@@ -29,8 +31,22 @@ def get_user_tokens_by_permissions(permission):
         
     except Exception as e:
         return []
+    
+def get_user_tokens_by_whatsapp(IDRedSocial):
+
+    user_ids = WhatsappConfiguracionUser.objects.filter(
+        IDRedSocial=IDRedSocial
+    ).values_list('user_id', flat=True)
+
+    # 2. Filtrar UserTokens usando esos user_id y obtener solo los tokens
+    tokens = UserTokens.objects.filter(
+        user_id__in=list(user_ids)
+    ).values_list('token', flat=True)
+
+    return list(tokens)
 
 def get_users_tokens(miembros):
+
     user_ids = [miembro.user_id for miembro in miembros]
     # Filtrar los UserTokens usando esos user_ids
     user_tokens = UserTokens.objects.filter(user_id__in=user_ids)
@@ -40,5 +56,6 @@ def get_users_tokens(miembros):
     return tokens
 
 def delete_token(token):
+    
     UserTokens.objects.filter(token=token).delete()
 
