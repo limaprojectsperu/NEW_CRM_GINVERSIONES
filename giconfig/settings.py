@@ -138,11 +138,11 @@ MIDDLEWARE = [
 
 # Crontab 
 CRONJOBS = [
-    (
-        "0 2 * * 1",  # Cada lunes a las 2:00 AM
-        "apps.management.commands.import_data_task",
-        ">> /code/cron_import_data.log 2>&1"
-    ),
+    #(
+        #"0 2 * * 1",  # Cada lunes a las 2:00 AM
+        #"apps.management.commands.import_data_task",
+        #">> /code/cron_import_data.log 2>&1"
+    #),
 ]
 
 # Orígenes permitidos para las peticiones cross-site:

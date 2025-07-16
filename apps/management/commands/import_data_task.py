@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import RequestException
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from apps.users.models import Users, Permissions, Perfiles, PerfilPermissions
+from apps.users.models import Users, Perfiles
 
 class Command(BaseCommand):
     help = 'Limpia tablas e importa datos desde APIs externas'
@@ -19,22 +19,10 @@ class Command(BaseCommand):
                 'pk': 'co_usuario',
                 'wrapper_key': 'data',
             },
-            'permissions': {
-                'url': 'https://sistema.grupoimagensac.com.pe/api/permisos',
-                'model': Permissions,
-                'pk': 'id',
-                'wrapper_key': 'data',
-            },
             'perfiles': {
                 'url': 'https://sistema.grupoimagensac.com.pe/api/roles',
                 'model': Perfiles,
                 'pk': 'co_perfil',
-                'wrapper_key': 'data',
-            },
-            'perfil_permissions': {
-                'url': 'https://sistema.grupoimagensac.com.pe/api/roles-permisos',
-                'model': PerfilPermissions,
-                'pk': 'id',
                 'wrapper_key': 'data',
             },
         }
@@ -44,9 +32,7 @@ class Command(BaseCommand):
         try:
             with transaction.atomic():
                 # Orden importante: eliminar dependencias primero
-                PerfilPermissions.objects.all().delete()
                 Users.objects.all().delete()
-                Permissions.objects.all().delete()
                 Perfiles.objects.all().delete()
                 
             self.stdout.write(self.style.SUCCESS('Registros eliminados correctamente'))
