@@ -30,7 +30,7 @@ class Users(models.Model):
         verbose_name_plural = 'Usuarios'
         
     def __str__(self):
-        return self.name
+        return f"id: {self.co_usuario} - {self.name}"
 
 
 class UserTokens(models.Model):
@@ -81,7 +81,7 @@ class Perfiles(models.Model):
         verbose_name_plural = 'Perfiles'
         
     def __str__(self):
-        return self.no_perfil
+        return f"id: {self.co_perfil} - {self.no_perfil}"
 
 
 class PerfilPermissions(models.Model):
