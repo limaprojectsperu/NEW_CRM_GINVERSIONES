@@ -7,9 +7,10 @@ from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status
-from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
+from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsappMetaPlantillas
 from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
 from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
+
 
 class WhatsappSendAPIView(APIView):
     """
@@ -51,14 +52,39 @@ class WhatsappSendAPIView(APIView):
         ).first()
 
         # 4) Si no hay chat reciente o mensaje == "plantilla", enviamos template
-        if not chat or text.lower() == 'plantilla':
-            payload = self._build_template_payload(phone)
+        if not chat:
+            # NUEVA FUNCIONALIDAD: Soporte para plantillas con variables e imágenes
+            template_params = [data.get('template_params_1'), data.get('template_params_2')]
+            media_id = data.get('media_id')
+            
+            # Obtener plantilla desde BD
+            template_obj = WhatsappMetaPlantillas.objects.filter(
+                nombre=self.template
+            ).first()
+
+            media_type = template_obj.tipo
+            
+            # Si no se proporciona media_id pero la plantilla tiene media_url, subir automáticamente
+            if not media_id and template_obj and template_obj.media_url and template_obj.media_url.strip():
+                media_result = self._upload_template_media(template_obj)
+                if media_result['success']:
+                    media_id = media_result['media_id']
+                    media_type = media_result['media_type']
+                else:
+                    return JsonResponse({
+                        'message': f'Error al subir media de la plantilla: {media_result["error"]}',
+                        'status': 500
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            payload = self._build_template_payload(phone, template_params, media_id, media_type)
             result  = self._send_msg_api(payload)
+            
             if result['status_code'] == 200:
                 Whatsapp.objects.filter(IDChat=data.get('IDChat')).update(
                     FechaUltimaPlantilla=get_naive_peru_time()
                 )
-                msjPlantilla = "Ya pasaron más de 24 horas desde el ultimo mensaje, por ello se envió una plantilla."
+                message_text = self._build_message_text(template_obj, template_params, bool(media_id))
+                msjPlantilla = f"Ya pasaron más de 24 horas desde el ultimo mensaje, por ello se envió una plantilla: {message_text}"
         else:
             # 5) Procesar media (subida o URL)
             media = self._send_media(request)
@@ -93,6 +119,8 @@ class WhatsappSendAPIView(APIView):
             'resultMedia': media,
             'data':        result.get('response')   if result else None,
             'status':      result.get('status_code') if result else None,
+            'template_media_uploaded': bool(media_id if not chat else False),
+            'media_id': media_id if not chat else None,
         }, status=result.get('status_code', 200) if result else 200)
 
     def _init_setting(self, IDRedSocial):
@@ -252,17 +280,212 @@ class WhatsappSendAPIView(APIView):
                 'storage': 'error'
             }
 
-    def _build_template_payload(self, to_phone):
-        """Construye payload para plantilla"""
-        return json.dumps({
+    def _upload_template_media(self, template):
+        """Sube automáticamente el media de la plantilla desde la carpeta media"""
+        try:
+            # Construir ruta del archivo
+            media_path = os.path.join(settings.MEDIA_ROOT, 'media', template.media_url.lstrip('/media/'))
+            
+            # Verificar si el archivo existe
+            if not os.path.exists(media_path):
+                return {
+                    'success': False,
+                    'error': f'Archivo no encontrado: {media_path}'
+                }
+            
+            # Determinar tipo de media basado en la extensión o tipo de plantilla
+            media_type = self._determine_media_type(media_path, template.tipo)
+            
+            # Leer archivo
+            with open(media_path, 'rb') as file:
+                file_content = file.read()
+                file_name = os.path.basename(media_path)
+                
+                # Determinar content_type
+                content_type = self._get_content_type(file_name)
+                
+                # Preparar datos para upload
+                files = {
+                    'file': (file_name, file_content, content_type)
+                }
+                
+                data = {
+                    'messaging_product': 'whatsapp',
+                    'type': media_type
+                }
+                
+                headers = {
+                    'Authorization': f'Bearer {self.token}'
+                }
+                
+                # Subir a WhatsApp API
+                response = requests.post(
+                    f'{self.url_api}/media',
+                    files=files,
+                    data=data,
+                    headers=headers,
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    return {
+                        'success': True,
+                        'media_id': response_data.get('id'),
+                        'media_type': media_type,
+                        'file_path': media_path
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': f'Error en API de WhatsApp: {response.text}'
+                    }
+                    
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Error procesando archivo: {str(e)}'
+            }
+
+    def _determine_media_type(self, file_path, template_type):
+        """Determina el tipo de media basado en la extensión del archivo y tipo de plantilla"""
+        # Si el tipo de plantilla está definido y es válido, usarlo
+        valid_types = ['image', 'video', 'audio', 'document']
+        if template_type and template_type.lower() in valid_types:
+            return template_type.lower()
+        
+        # Determinar por extensión
+        extension = os.path.splitext(file_path)[1].lower()
+        
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        video_extensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm']
+        audio_extensions = ['.mp3', '.wav', '.aac', '.ogg', '.m4a']
+        
+        if extension in image_extensions:
+            return 'image'
+        elif extension in video_extensions:
+            return 'video'
+        elif extension in audio_extensions:
+            return 'audio'
+        else:
+            return 'document'
+
+    def _get_content_type(self, file_name):
+        """Obtiene el content-type basado en la extensión del archivo"""
+        extension = os.path.splitext(file_name)[1].lower()
+        
+        content_types = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.mp4': 'video/mp4',
+            '.avi': 'video/x-msvideo',
+            '.mov': 'video/quicktime',
+            '.wmv': 'video/x-ms-wmv',
+            '.flv': 'video/x-flv',
+            '.webm': 'video/webm',
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.aac': 'audio/aac',
+            '.ogg': 'audio/ogg',
+            '.m4a': 'audio/mp4',
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }
+        
+        return content_types.get(extension, 'application/octet-stream')
+
+    def _build_template_payload(self, to_phone, template_params=None, media_id=None, media_type='image'):
+        """Construye payload para plantilla con soporte para variables e imágenes"""
+        template = WhatsappMetaPlantillas.objects.filter(
+            nombre=self.template
+        ).first()
+
+        payload = {
             "messaging_product": "whatsapp",
             "to": to_phone,
             "type": "template",
             "template": {
-                "name": self.template,
-                "language": {"code": self.language}
+                "name": template.nombre,
+                "language": {"code": template.lenguaje}
             }
-        })
+        }
+
+        # Agregar componentes si hay parámetros o media
+        components = []
+        
+        # Componente de header con media
+        if media_id:
+            # Determinar el tipo de media y construir el parámetro apropiado
+            media_param = {
+                "type": media_type
+            }
+            
+            # Agregar el media según su tipo
+            if media_type == "image":
+                media_param["image"] = {"id": media_id}
+            elif media_type == "document":
+                media_param["document"] = {"id": media_id}
+            elif media_type == "video":
+                media_param["video"] = {"id": media_id}
+            elif media_type == "audio":
+                media_param["audio"] = {"id": media_id}
+            else:
+                # Default a imagen si no se especifica
+                media_param["image"] = {"id": media_id}
+            
+            components.append({
+                "type": "header",
+                "parameters": [media_param]
+            })
+        
+        # Componente de body con parámetros
+        if template_params:
+            body_params = []
+            for param in template_params:
+                body_params.append({
+                    "type": "text",
+                    "text": str(param)
+                })
+            
+            components.append({
+                "type": "body",
+                "parameters": body_params
+            })
+        
+        # Agregar componentes al payload si existen
+        if components:
+            payload["template"]["components"] = components
+
+        return json.dumps(payload)
+
+    def _build_message_text(self, template, params=None, has_media=False):
+        """Construye el texto del mensaje para guardar en BD"""
+        if not template:
+            return "Plantilla enviada"
+            
+        message_text = template.mensaje
+
+        if not message_text:
+            # Si no hay mensaje en la plantilla, usar la descripción como fallback.
+            message_text = f"Plantilla: {template.descripcion}"
+        elif params:
+            # Reemplazar cada placeholder {{n}} con el parámetro correspondiente.
+            for i, param in enumerate(params):
+                # El placeholder es {{1}}, {{2}}, etc. El índice de la lista es 0, 1, ...
+                placeholder = f"{{{{{i + 1}}}}}"
+                message_text = message_text.replace(placeholder, str(param))
+
+        # Opcionalmente, agregar una nota si el mensaje incluye un archivo.
+        if has_media:
+            message_text += " (Con archivo adjunto)"
+
+        return message_text
 
     def _build_text_payload(self, to_phone, body):
         """Construye payload para mensaje de texto"""

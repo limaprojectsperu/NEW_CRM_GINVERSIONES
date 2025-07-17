@@ -57,7 +57,7 @@ class WhatsappBulkSendAPIView(APIView):
         
         # Procesar media automáticamente si la plantilla tiene media_url
         media_id = data.get('media_id')
-        media_type = data.get('media_type', 'image')
+        media_type = template.tipo
         
         # Si no se proporciona media_id pero la plantilla tiene media_url, subir automáticamente
         if not media_id and template.media_url and template.media_url.strip():
