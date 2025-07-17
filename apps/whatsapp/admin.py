@@ -8,6 +8,7 @@ from .models import (
     WhatsappMetaPlantillas,
     WhatsappPlantillaResumen,
     WhatsappConfiguracionUser,
+    WhatsappProfileAccepts,
 )
 
 # Register your models here.
@@ -19,3 +20,4 @@ admin.site.register(ChatNiveles)
 admin.site.register(WhatsappMetaPlantillas)
 admin.site.register(WhatsappPlantillaResumen)
 admin.site.register(WhatsappConfiguracionUser)
+admin.site.register(WhatsappProfileAccepts)

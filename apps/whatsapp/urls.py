@@ -11,6 +11,7 @@ from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
 from .views.whatsapp_bulk import WhatsappBulkSendAPIView
 from .views.summary_template import WhatsappMetaPlantillasViewSet, WhatsappPlantillaResumenViewSet
 from .views.whatsapp_user import WhatsappConfiguracionUserViewSet
+from .views.whatsapp_profile_accepts import WhatsappProfileAcceptsViewSet
 
 nivel_list = NivelViewSet.as_view({
     'get':  'list',
@@ -71,5 +72,12 @@ urlpatterns = [
         'get': 'show',
         'put': 'update'
     }), name='whatsapp-configuracion-user-detail'),
+
+    # API para WhatsappProfileAccepts
+    path('whatsapp-profile-accepts/<int:pk>', WhatsappProfileAcceptsViewSet.as_view({
+        'get': 'show',
+        'put': 'update'
+    }), name='whatsapp-profile-accepts-detail'),
+    path('whatsapp-profile-accepts-by-name', WhatsappProfileAcceptsViewSet.as_view({'post': 'getProfileAccepts'}), name='whatsapp-profile-accepts-by-name')
 
 ]

@@ -85,7 +85,18 @@ class WhatsappMensajes(models.Model):
     def __str__(self):
         return f"Mensaje: {self.Mensaje} {self.IDChatMensaje} ({self.IDChat})"
 
+class WhatsappProfileAccepts(models.Model):
+    id = models.AutoField(primary_key=True)
+    perfil_id = models.IntegerField()
+    accepts = models.CharField(max_length=800, null=True, blank=True, db_column='accepts')
 
+    class Meta:
+        db_table = 'whatsapp_perfil_acepta'
+        verbose_name_plural = 'WhatsApp Perfil Acepta'
+        
+    def __str__(self):
+        return f"Perfil {self.perfil_id} - Acepta {self.accepts}"
+    
 class Niveles(models.Model):
     IDNivel      = models.AutoField(primary_key=True, db_column='IDNivel')
     IDNivelPadre = models.IntegerField(null=True, blank=True, db_column='IDNivelPadre')
