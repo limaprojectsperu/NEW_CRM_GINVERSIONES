@@ -155,10 +155,12 @@ class WebhookVerifyReceive(APIView):
         else:
             # Otros tipos de mensajes
             message_content = '[Mensaje no soportado]'
-
-        if not message_content or not message_notification:
-            print("No se pudo extraer el contenido del mensaje")
+            print(f"Tipo de mensaje no soportado")
             return
+
+        #if not message_content or not message_notification:
+            #print("No se pudo extraer el contenido del mensaje")
+            #return
 
         newChat = False
 

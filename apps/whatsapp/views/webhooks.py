@@ -125,9 +125,9 @@ class WhatsappWebhookAPIView(APIView):
             print(f"Tipo de mensaje no soportado: {message_type}")
             return
 
-        if not message_content or not message_notification:
-            print("No se pudo extraer el contenido del mensaje")
-            return
+        #if not message_content or not message_notification:
+            #print("No se pudo extraer el contenido del mensaje")
+            #return
             
         contacts = change.get('contacts', [])
         name = phone
