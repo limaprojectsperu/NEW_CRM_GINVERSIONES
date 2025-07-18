@@ -20,6 +20,7 @@ class WhatsappConfiguracion(models.Model):
     openai      = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
     enviar_quien_escribio = models.BooleanField(default=False) 
+    contactar_leads = models.BooleanField(default=False) 
 
     class Meta:
         db_table = 'whatsapp_configuracion'
@@ -61,8 +62,7 @@ class Whatsapp(models.Model):
         verbose_name_plural = 'WhatsApp Chats'
 
     def __str__(self):
-        return f"{self.Nombre} ({self.IDChat})"
-
+        return f"{self.Nombre} ({self.IDChat}) - {self.Telefono}"
 
 class WhatsappMensajes(models.Model):
     IDChatMensaje = models.AutoField(primary_key=True, db_column='IDChatMensaje', help_text='Id del Mensaje')
@@ -85,6 +85,19 @@ class WhatsappMensajes(models.Model):
     def __str__(self):
         return f"Mensaje: {self.Mensaje} {self.IDChatMensaje} ({self.IDChat})"
 
+class WhatsapChatUser(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id')
+    IDChat  = models.IntegerField(db_column='IDChat')
+    user_id = models.IntegerField(db_column='user_id')
+
+    class Meta:
+        db_table = 'whatsapp_chat_users'
+        verbose_name = 'WhatsApp Chat Usuario'
+        verbose_name_plural = 'WhatsApp Chats Usuarios'
+
+    def __str__(self):
+        return f"Chat {self.IDChat} - Usuario {self.user_id}"
+    
 class WhatsappProfileAccepts(models.Model):
     id = models.AutoField(primary_key=True)
     perfil_id = models.IntegerField()
@@ -169,18 +182,6 @@ class WhatsappPlantillaResumen(models.Model):
     def __str__(self):
         return f"id: {self.id} - exitosos: {self.exitosos} - fallidos: {self.fallidos}"
 
-class WhatsapChatUser(models.Model):
-    id = models.AutoField(primary_key=True, db_column='id')
-    IDChat  = models.IntegerField(db_column='IDChat')
-    user_id = models.IntegerField(db_column='user_id')
-
-    class Meta:
-        db_table = 'whatsapp_chat_users'
-        verbose_name = 'WhatsApp Chat Usuario'
-        verbose_name_plural = 'WhatsApp Chats Usuarios'
-
-    def __str__(self):
-        return f"Chat {self.IDChat} - Usuario {self.user_id}"
     
 class Lead(models.Model):
     id = models.AutoField(primary_key=True, db_column='id')

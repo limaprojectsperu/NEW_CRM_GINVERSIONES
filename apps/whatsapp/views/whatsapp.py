@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
-from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion, WhatsappConfiguracionUser
+from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion, WhatsappConfiguracionUser, WhatsapChatUser
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
@@ -26,6 +26,7 @@ class WhatsappList(APIView):
         IDSubEstado    = int(request.data.get('IDSubEstadoLead', -1))
         IDNivel        = int(request.data.get('IDNivel', -1))
         search_text = request.data.get('searchMessage', '').strip()
+        user_id = request.data.get('user_id', -1) # Si no tiene el ID, se puede ver todo los chats
 
         qs = Whatsapp.objects.filter(IDRedSocial=id, Estado=1)
 
@@ -37,6 +38,12 @@ class WhatsappList(APIView):
             # unimos con la tabla chat_niveles
             chat_ids = ChatNiveles.objects.filter(IDNivel=IDNivel).values_list('IDChat', flat=True)
             qs = qs.filter(IDChat__in=chat_ids)
+
+        if user_id > 0:
+            # Get all IDChat values associated with the given user_id from WhatsapChatUser
+            chat_ids_for_user = WhatsapChatUser.objects.filter(user_id=user_id).values_list('IDChat', flat=True)
+            # Filter the main queryset using these chat IDs
+            qs = qs.filter(IDChat__in=chat_ids_for_user)
 
         if search_text:
             matching_messages = WhatsappMensajes.objects.filter(

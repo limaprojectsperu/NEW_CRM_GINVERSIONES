@@ -1,6 +1,6 @@
 from django.db import connection
 from apps.users.models import UserTokens
-from apps.whatsapp.models import WhatsappConfiguracionUser
+from apps.whatsapp.models import WhatsappConfiguracionUser, WhatsapChatUser
 
 # Método alternativo usando SQL raw (más eficiente para consultas complejas)
 def get_user_tokens_by_permissions(permission):
@@ -32,15 +32,21 @@ def get_user_tokens_by_permissions(permission):
     except Exception as e:
         return []
     
-def get_user_tokens_by_whatsapp(IDRedSocial):
+def get_user_tokens_by_whatsapp(IDRedSocial, IDChat):
+    # 1. Encontrar los IDs de usuarios que pertenecen al CHAT específico.
+    users_in_chat = WhatsapChatUser.objects.filter(
+        IDChat=IDChat
+    ).values('user_id')
 
-    user_ids = WhatsappConfiguracionUser.objects.filter(
-        IDRedSocial=IDRedSocial
+    # 2. Encontrar los IDs de usuarios que pertenecen a la CONFIGURACIÓN de la red social
+    users_in_config = WhatsappConfiguracionUser.objects.filter(
+        IDRedSocial=IDRedSocial,
+        user_id__in=users_in_chat  # ¡La clave está aquí! Filtramos por el subquery.
     ).values_list('user_id', flat=True)
-
-    # 2. Filtrar UserTokens usando esos user_id y obtener solo los tokens
+    
+    # 3. Finalmente, obtenemos los tokens de esos usuarios.
     tokens = UserTokens.objects.filter(
-        user_id__in=list(user_ids)
+        user_id__in=users_in_config
     ).values_list('token', flat=True)
 
     return list(tokens)

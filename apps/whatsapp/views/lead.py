@@ -1,40 +1,32 @@
+import json
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
-from ..models import Lead
+from django.utils import timezone
+from datetime import datetime
+from ..models import Lead, WhatsappConfiguracion, Whatsapp, WhatsapChatUser, WhatsappMensajes
 from ..serializers import LeadSerializer
-
+from apps.redes_sociales.models import Marca
+from apps.utils.datetime_func import get_date_time, get_naive_peru_time_delta
+from apps.utils.find_states import find_state_id
+from django.test import RequestFactory
+from rest_framework.parsers import JSONParser
+from rest_framework.request import Request
+from ..views.whatsapp_app import WhatsappSendAPIView
+from ...utils.pusher_client import pusher_client
+from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
+from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
 
 class LeadViewSet(viewsets.ViewSet):
     """
-    API endpoint for managing Lead records.
+    API endpoint for managing Lead records with WhatsApp integration.
     """
 
     def create(self, request):
         """
         POST /api/leads/
         Accepts both single Lead object and array of Lead objects.
-        
-        Single Lead example:
-        {
-            "nombre_lead": "Juan Pérez",
-            "celular": "987654321",
-            "monto_solicitado": 50000.00
-        }
-        
-        Array of Leads example:
-        [
-            {
-                "nombre_lead": "Juan Pérez",
-                "celular": "987654321",
-                "monto_solicitado": 50000.00
-            },
-            {
-                "nombre_lead": "María González",
-                "celular": "987654322",
-                "monto_solicitado": 75000.00
-            }
-        ]
+        Also creates WhatsApp chat records for each lead.
         """
         data = request.data
         
@@ -48,30 +40,46 @@ class LeadViewSet(viewsets.ViewSet):
     
     def _create_single_lead(self, data):
         """
-        Crear un solo Lead
+        Crear un solo Lead con registro de WhatsApp
         """
-        serializer = LeadSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
+        try:
+            with transaction.atomic():
+                # Crear el Lead
+                serializer = LeadSerializer(data=data)
+                if serializer.is_valid():
+                    lead = serializer.save()
+                    
+                    # Crear registro de WhatsApp
+                    whatsapp_result = self._create_whatsapp_record(lead)
+                    
+                    return Response(
+                        {
+                            'data': serializer.data,
+                            'whatsapp_info': whatsapp_result,
+                            'message': 'Lead y registro de WhatsApp creados con éxito.'
+                        },
+                        status=status.HTTP_201_CREATED
+                    )
+                else:
+                    return Response(
+                        {
+                            'errors': serializer.errors,
+                            'message': 'Error al registrar el Lead.'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        except Exception as e:
             return Response(
                 {
-                    'data': serializer.data,
-                    'message': 'Lead registrado con éxito.'
+                    'errors': [f'Error interno: {str(e)}'],
+                    'message': 'Error al procesar la solicitud.'
                 },
-                status=status.HTTP_201_CREATED
-            )
-        else:
-            return Response(
-                {
-                    'errors': serializer.errors,
-                    'message': 'Error al registrar el Lead.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
     def _create_multiple_leads(self, data):
         """
-        Crear múltiples Leads
+        Crear múltiples Leads con registros de WhatsApp
         """
         if not data:
             return Response(
@@ -111,14 +119,22 @@ class LeadViewSet(viewsets.ViewSet):
         try:
             with transaction.atomic():
                 created_leads = []
+                whatsapp_results = []
+                
                 for serializer in serializers:
+                    # Crear Lead
                     lead = serializer.save()
                     created_leads.append(LeadSerializer(lead).data)
+                    
+                    # Crear registro de WhatsApp
+                    whatsapp_result = self._create_whatsapp_record(lead)
+                    whatsapp_results.append(whatsapp_result)
                 
                 return Response(
                     {
                         'data': created_leads,
-                        'message': f'{len(created_leads)} Leads registrados con éxito.',
+                        'whatsapp_info': whatsapp_results,
+                        'message': f'{len(created_leads)} Leads y registros de WhatsApp creados con éxito.',
                         'count': len(created_leads)
                     },
                     status=status.HTTP_201_CREATED
@@ -132,3 +148,164 @@ class LeadViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def _create_whatsapp_record(self, lead):
+        """
+        Crear registro de WhatsApp para un Lead
+        """
+        try:
+            # 1. Obtener IDRedSocial basado en la marca del Lead
+            marca = Marca.objects.filter(nombre__iexact=lead.marca).first()
+            if not marca:
+                marca = Marca.objects.filter(id=1).first()
+            
+            whatsapp_config = WhatsappConfiguracion.objects.filter(
+                marca_id=marca.id,
+                Estado=1,
+                contactar_leads=True
+            ).first()
+            
+            if not whatsapp_config:
+                whatsapp_config = WhatsappConfiguracion.objects.filter(
+                    Nombre='Presta Capital',
+                    Estado=1
+                ).first()
+            
+            # 2. Verificar si ya existe un chat para este teléfono con este usuario
+            existing_chat_user = WhatsapChatUser.objects.filter(
+                IDChat__in=Whatsapp.objects.filter(
+                    Telefono='51'+lead.celular,
+                    IDRedSocial=whatsapp_config.IDRedSocial
+                ).values_list('IDChat', flat=True),
+                user_id=lead.usuario_asignado
+            ).first()
+            
+            if existing_chat_user:
+                # El chat ya existe, obtener el chat
+                whatsapp_chat = Whatsapp.objects.get(IDChat=existing_chat_user.IDChat)
+                chat_created = False
+            else:
+                # 3. Crear nuevo registro en Whatsapp
+                whatsapp_chat = Whatsapp.objects.create(
+                    IDRedSocial=whatsapp_config.IDRedSocial,
+                    Nombre=lead.nombre_lead,
+                    Telefono='51'+lead.celular,
+                    FechaUltimaPlantilla=get_naive_peru_time_delta(days=-2),
+                    updated_at=timezone.now(),
+                    IDEL=find_state_id(2, 'No leído'),
+                    nuevos_mensajes=1,
+                    Estado=1
+                )
+                chat_created = True
+                
+                # 4. Crear registro en WhatsapChatUser
+                WhatsapChatUser.objects.create(
+                    IDChat=whatsapp_chat.IDChat,
+                    user_id=lead.usuario_asignado
+                )
+            
+            # 5. Crear mensaje inicial con datos del Lead
+            mensaje_contenido = self._generate_lead_message(lead)
+            Fecha, Hora = get_date_time()
+
+            whatsapp_mensaje = WhatsappMensajes.objects.create(
+                IDChat=whatsapp_chat.IDChat,
+                Telefono='51'+lead.celular,
+                user_id=lead.usuario_asignado,
+                Mensaje=mensaje_contenido,
+                Fecha=Fecha,
+                Hora=Hora
+            )
+
+            self.send_message(whatsapp_config, whatsapp_chat, 'Plantilla')
+            
+            # Push notification
+            firebase_service = FirebaseServiceV1()
+            tokens = get_user_tokens_by_whatsapp(whatsapp_config.IDRedSocial, whatsapp_chat.IDChat)
+            if len(tokens) > 0:
+                firebase_service.send_to_multiple_devices(
+                    tokens=tokens,
+                    title="Nuevo lead recibido en WhatsApp",
+                    body= self.simple_message(lead),
+                    data={'type': 'router', 'route_name': 'WhatsappPage'}
+                )
+
+            pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': whatsapp_config.IDRedSocial })
+
+            return {
+                'status': 'success',
+                'whatsapp_chat_id': whatsapp_chat.IDChat,
+                'chat_created': chat_created,
+                'message_id': whatsapp_mensaje.IDChatMensaje,
+                'config_id': whatsapp_config.IDRedSocial,
+                'marca': lead.marca
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Error al crear registro de WhatsApp: {str(e)}'
+            }
+    
+    def send_message(self, setting, chat, mensaje, origen=1):
+        """
+        Envía mensaje usando WhatsappSendAPIView
+        """
+        Fecha, Hora = get_date_time()
+        message_data = {
+            "IDRedSocial": setting.IDRedSocial,
+            "tokenHook": setting.TokenHook,  
+            "phone": chat.Telefono,
+            "IDChat": chat.IDChat,
+            "Telefono": setting.Telefono,
+            "Mensaje": mensaje,
+            "Fecha": Fecha,
+            "Hora": Hora,
+            "origen": origen,
+        }
+        
+        factory = RequestFactory()
+        django_request = factory.post(
+            '/api/messenger-app/send-message/',
+            data=json.dumps(message_data),
+            content_type='application/json'
+        )
+        
+        drf_request = Request(django_request, parsers=[JSONParser()])
+        view = WhatsappSendAPIView()
+        return view.post(drf_request)
+    
+    def simple_message(self, lead):
+        f"Nueva Lead de {lead.marca}: Nombre: {lead.nombre_lead}; Monto Solicitado: S/. {lead.monto_solicitado}; "
+        f"Celular: {lead.celular}; Ocurrencia: {lead.ocurrencia}."
+        
+    def _generate_lead_message(self, lead):
+        """
+        Generar mensaje inicial basado en los datos del Lead
+        """
+        mensaje = f"""🆕 NUEVO LEAD REGISTRADO
+
+        👤 Nombre: {lead.nombre_lead}
+        📱 Celular: {lead.celular}
+        🏢 Marca: {lead.marca}
+        💰 Monto Solicitado: S/. {lead.monto_solicitado}
+
+        📋 DETALLES:
+        • Código: {lead.codigo_solicitud}
+        • Medio de Captación: {lead.medio_captacion}
+        • Condición: {lead.condicion}
+        • Tipo de Garantía: {lead.tipo_garantia}
+
+        📍 UBICACIÓN:
+        • Departamento: {lead.departamento}
+        • Provincia: {lead.provincia}
+        • Distrito: {lead.distrito}
+
+        🏠 Propiedad en RRPP: {'✅ Sí' if lead.propiedad_registros_publicos else '❌ No'}
+
+        📅 Fecha de Registro: {lead.fecha_registro.strftime('%d/%m/%Y %H:%M') if lead.fecha_registro else 'No especificada'}
+        📅 Fecha de Asignación: {lead.fecha_asignacion.strftime('%d/%m/%Y %H:%M') if lead.fecha_asignacion else 'No especificada'}
+
+        🔄 Ocurrencia: {lead.ocurrencia}"""
+        
+        return mensaje[:2000]  # Limitar a 2000 caracteres según el modelo

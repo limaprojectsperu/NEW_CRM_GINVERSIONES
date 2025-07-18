@@ -110,6 +110,8 @@ class WhatsappPlantillaResumenSerializer(serializers.ModelSerializer):
             return None
         
 class LeadSerializer(serializers.ModelSerializer):
+    usuario_asignado = serializers.IntegerField(required=True)
+
     class Meta:
         model = Lead
         fields = '__all__'

@@ -141,7 +141,7 @@ class WhatsappWebhookAPIView(APIView):
 
         # Push notification
         firebase_service = FirebaseServiceV1()
-        tokens = get_user_tokens_by_whatsapp(setting.IDRedSocial)
+        tokens = get_user_tokens_by_whatsapp(setting.IDRedSocial, chat.IDChat)
         if len(tokens) > 0:
             firebase_service.send_to_multiple_devices(
                 tokens=tokens,

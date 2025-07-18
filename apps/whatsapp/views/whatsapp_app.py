@@ -52,7 +52,7 @@ class WhatsappSendAPIView(APIView):
         ).first()
 
         # 4) Si no hay chat reciente o mensaje == "plantilla", enviamos template
-        if not chat:
+        if not chat or text.lower() == 'plantilla':
             # NUEVA FUNCIONALIDAD: Soporte para plantillas con variables e imágenes
             template_params = [data.get('template_params_1', 'Emprendedor'), data.get('template_params_2', 'MIGUEL TANCUN')]
             media_id = data.get('media_id')
