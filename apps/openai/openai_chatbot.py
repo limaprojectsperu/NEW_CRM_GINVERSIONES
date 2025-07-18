@@ -33,7 +33,7 @@ class ChatbotService:
             resp = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
-                max_tokens=200,
+                max_tokens=250,
                 temperature=0.7
             )
             return resp.choices[0].message.content.strip()

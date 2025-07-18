@@ -71,6 +71,7 @@ class WhatsappWebhookAPIView(APIView):
         phone = message_obj['from']
 
         message_content = ""
+        message_notification = ""
         button_id = None
         media_info = None
         
@@ -98,33 +99,33 @@ class WhatsappWebhookAPIView(APIView):
         
         elif message_type == 'image':
             media_info = self._process_media_message(message_obj, 'image', setting, phone)
-            message_content = '[Imagen]'
+            message_notification = 'Imagen'
         
         elif message_type == 'audio':
             media_info = self._process_media_message(message_obj, 'audio', setting, phone)
-            message_content = '[Audio]'
+            message_notification = 'Audio'
         
         elif message_type == 'video':
             media_info = self._process_media_message(message_obj, 'video', setting, phone)
-            message_content = '[Video]'
+            message_notification = 'Video'
         
         elif message_type == 'document':
             media_info = self._process_media_message(message_obj, 'document', setting, phone)
-            message_content = '[Documento]'
+            message_notification = 'Documento'
         
         elif message_type == 'voice':
             media_info = self._process_media_message(message_obj, 'voice', setting, phone)
-            message_content = '[Nota de voz]'
+            message_notification = 'Nota de voz'
         
         elif message_type == 'sticker':
             media_info = self._process_media_message(message_obj, 'sticker', setting, phone)
-            message_content = '[Sticker]'
+            message_notification = 'Sticker'
         
         else:
             print(f"Tipo de mensaje no soportado: {message_type}")
             return
 
-        if not message_content:
+        if not message_content or not message_notification:
             print("No se pudo extraer el contenido del mensaje")
             return
             
@@ -145,7 +146,7 @@ class WhatsappWebhookAPIView(APIView):
             firebase_service.send_to_multiple_devices(
                 tokens=tokens,
                 title="Nuevo mensaje en WhatsApp",
-                body=message_content,
+                body=message_content if message_content else message_notification,
                 data={'type': 'router', 'route_name': 'WhatsappPage'}
             )
 

@@ -12,6 +12,7 @@ from .views.whatsapp_bulk import WhatsappBulkSendAPIView
 from .views.summary_template import WhatsappMetaPlantillasViewSet, WhatsappPlantillaResumenViewSet
 from .views.whatsapp_user import WhatsappConfiguracionUserViewSet
 from .views.whatsapp_profile_accepts import WhatsappProfileAcceptsViewSet
+from .views.lead import LeadViewSet
 
 nivel_list = NivelViewSet.as_view({
     'get':  'list',
@@ -31,7 +32,7 @@ urlpatterns = [
     path('whatsapp-app/send-message', WhatsappSendAPIView.as_view()),
 
     # whatsapp api
-    path('whatsapp/all', WhatsappListAll.as_view(), name='whatsapp-list-all'),
+    path('whatsapp/by-setting/<int:id>', WhatsappListAll.as_view(), name='whatsapp-list-all'),
     path('whatsapp/all/<int:id>', WhatsappList.as_view(), name='whatsapp-list'),
     path('whatsapp/store', WhatsappStore.as_view(),       name='whatsapp-store'),
     path('whatsapp/message/<int:id>', WhatsappShow.as_view(),   name='whatsapp-show'),
@@ -78,6 +79,11 @@ urlpatterns = [
         'get': 'show',
         'put': 'update'
     }), name='whatsapp-profile-accepts-detail'),
-    path('whatsapp-profile-accepts-by-name', WhatsappProfileAcceptsViewSet.as_view({'post': 'getProfileAccepts'}), name='whatsapp-profile-accepts-by-name')
+    path('whatsapp-profile-accepts-by-name', WhatsappProfileAcceptsViewSet.as_view({'post': 'getProfileAccepts'}), name='whatsapp-profile-accepts-by-name'),
+
+    #lead
+    path('whatsapp/lead', LeadViewSet.as_view({
+        'post': 'create'
+    }), name='whatsapp-lead'),
 
 ]

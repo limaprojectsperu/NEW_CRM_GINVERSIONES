@@ -94,6 +94,7 @@ class WebhookVerifyReceive(APIView):
         # Obtener el mensaje y determinar el tipo
         message_obj = msg.get('message', {})
         message_content = ""
+        message_notification = ""
         media_info = None
         
         # Cargamos configuración
@@ -116,19 +117,19 @@ class WebhookVerifyReceive(APIView):
                 
                 if attachment_type == 'image':
                     media_info = self._process_media_attachment(attachment, 'image', setting, sender_id)
-                    message_content = '[Imagen]'
+                    message_notification = 'Imagen'
                 
                 elif attachment_type == 'video':
                     media_info = self._process_media_attachment(attachment, 'video', setting, sender_id)
-                    message_content = '[Video]'
+                    message_notification = 'Video'
                 
                 elif attachment_type == 'audio':
                     media_info = self._process_media_attachment(attachment, 'audio', setting, sender_id)
-                    message_content = '[Audio]'
+                    message_notification = 'Audio'
                 
                 elif attachment_type == 'file':
                     media_info = self._process_media_attachment(attachment, 'file', setting, sender_id)
-                    message_content = '[Archivo]'
+                    message_notification = 'Archivo'
                 
                 elif attachment_type == 'template':
                     # Manejo de plantillas (botones, carruseles, etc.)
@@ -155,7 +156,7 @@ class WebhookVerifyReceive(APIView):
             # Otros tipos de mensajes
             message_content = '[Mensaje no soportado]'
 
-        if not message_content:
+        if not message_content or not message_notification:
             print("No se pudo extraer el contenido del mensaje")
             return
 
@@ -209,7 +210,7 @@ class WebhookVerifyReceive(APIView):
             firebase_service.send_to_multiple_devices(
                 tokens=tokens,
                 title="Nuevo mensaje en Messenger",
-                body=message_content,
+                body=message_content if message_content else message_notification,
                 data={'type': 'router', 'route_name': 'MessengerPage'}
             )
 

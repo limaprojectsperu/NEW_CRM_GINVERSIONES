@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser, WhatsappProfileAccepts
+from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser, WhatsappProfileAccepts, Lead 
 from apps.redes_sociales.models import Marca 
 
 class WhatsappMensajesSerializer(serializers.ModelSerializer):
@@ -32,6 +32,11 @@ class WhatsappSerializer(serializers.ModelSerializer):
             .first()
         )
         return WhatsappMensajesSerializer(msg).data if msg else None
+    
+class WhatsappSingleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Whatsapp
+        fields = '__all__'
 
 class WhatsappConfiguracionSerializer(serializers.ModelSerializer):
     marca = serializers.SerializerMethodField()
@@ -66,10 +71,19 @@ class NivelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ChatNivelSerializer(serializers.ModelSerializer):
+    whatsapp = serializers.SerializerMethodField()
+
     class Meta:
         model = ChatNiveles
         fields = '__all__'
 
+    def get_whatsapp(self, obj):
+        try:
+            whatsapp = Whatsapp.objects.get(IDChat=obj.IDChat)
+            return WhatsappSingleSerializer(whatsapp).data
+        except Whatsapp.DoesNotExist:
+            return None
+        
 class WhatsappMetaPlantillasSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsappMetaPlantillas
@@ -94,3 +108,8 @@ class WhatsappPlantillaResumenSerializer(serializers.ModelSerializer):
             }
         except WhatsappMetaPlantillas.DoesNotExist:
             return None
+        
+class LeadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lead
+        fields = '__all__'

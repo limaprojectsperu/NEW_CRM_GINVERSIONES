@@ -12,8 +12,8 @@ from apps.users.views.wasabi import upload_to_wasabi
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
-    def get(self, request):
-        qs = Whatsapp.objects.filter(Estado=1)
+    def get(self, request,  id):
+        qs = Whatsapp.objects.filter(IDRedSocial=id, Estado=1)
         data = WhatsappSingleSerializer(qs, many=True).data
         return Response({'data': data})
 

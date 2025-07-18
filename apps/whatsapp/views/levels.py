@@ -37,7 +37,7 @@ class NivelViewSet(viewsets.ViewSet):
         padre = int(request.query_params.get('IDNivelPadre', -1))
         nivel = int(request.query_params.get('Nivel', -1))
 
-        qs = Niveles.objects.filter(IDEstado=1)
+        qs = Niveles.objects.filter(IDEstado=1).order_by('-IDNivel')
         if padre > 0:
             qs = qs.filter(IDNivelPadre=padre)
         if nivel > 0:
@@ -57,7 +57,7 @@ class NivelViewSet(viewsets.ViewSet):
         padre = int(request.query_params.get('IDNivelPadre', -1))
         nivel = int(request.query_params.get('Nivel', -1))
 
-        qs = Niveles.objects.all()
+        qs = Niveles.objects.all().order_by('-IDNivel')
         if padre > 0:
             qs = qs.filter(IDNivelPadre=padre)
         if nivel > 0:

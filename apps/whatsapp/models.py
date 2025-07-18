@@ -168,3 +168,43 @@ class WhatsappPlantillaResumen(models.Model):
 
     def __str__(self):
         return f"id: {self.id} - exitosos: {self.exitosos} - fallidos: {self.fallidos}"
+
+class WhatsapChatUser(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id')
+    IDChat  = models.IntegerField(db_column='IDChat')
+    user_id = models.IntegerField(db_column='user_id')
+
+    class Meta:
+        db_table = 'whatsapp_chat_users'
+        verbose_name = 'WhatsApp Chat Usuario'
+        verbose_name_plural = 'WhatsApp Chats Usuarios'
+
+    def __str__(self):
+        return f"Chat {self.IDChat} - Usuario {self.user_id}"
+    
+class Lead(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id')
+    fecha_registro = models.DateTimeField(db_column='fecha_registro', null=True, blank=True)
+    fecha_asignacion = models.DateTimeField(db_column='fecha_asignacion', null=True, blank=True)
+    codigo_solicitud = models.CharField(max_length=50, db_column='codigo_solicitud', null=True, blank=True)
+    medio_captacion = models.CharField(max_length=200, db_column='medio_captacion', null=True, blank=True)
+    marca = models.CharField(max_length=100, db_column='marca', null=True, blank=True)
+    nombre_lead = models.CharField(max_length=255, db_column='nombre_lead', null=True, blank=True)
+    usuario_asignado = models.CharField(max_length=100, db_column='usuario_asignado', null=True, blank=True)
+    monto_solicitado = models.DecimalField(max_digits=10, decimal_places=2, db_column='monto_solicitado', null=True, blank=True)
+    celular = models.CharField(max_length=20, db_column='celular', null=True, blank=True)
+    propiedad_registros_publicos = models.BooleanField(db_column='propiedad_registros_publicos', null=True, blank=True)
+    ocurrencia = models.CharField(max_length=255, db_column='ocurrencia', null=True, blank=True)
+    condicion = models.CharField(max_length=200, db_column='condicion', null=True, blank=True)
+    tipo_garantia = models.CharField(max_length=100, db_column='tipo_garantia', null=True, blank=True)
+    departamento = models.CharField(max_length=100, db_column='departamento', null=True, blank=True)
+    provincia = models.CharField(max_length=100, db_column='provincia', null=True, blank=True)
+    distrito = models.CharField(max_length=100, db_column='distrito', null=True, blank=True)
+
+    class Meta:
+        db_table = 'leads' 
+        verbose_name = 'Lead'
+        verbose_name_plural = 'Leads'
+
+    def __str__(self):
+        return f"{self.nombre_lead} ({self.celular})"
