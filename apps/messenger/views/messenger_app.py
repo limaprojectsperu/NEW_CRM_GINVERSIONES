@@ -10,6 +10,7 @@ from rest_framework import status
 from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
 from apps.utils.datetime_func  import get_naive_peru_time
 from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
+from ...utils.pusher_client import pusher_client
 
 class MessengerSendView(APIView):
     """
@@ -23,7 +24,7 @@ class MessengerSendView(APIView):
 
     def post(self, request):
         # Carga configuración dinámica de token/url
-        self._init_setting(request.data.get('IDRedSocial'))
+        setting = self._init_setting(request.data.get('IDRedSocial'))
 
         # Validación de tokenHook
         if request.data.get('tokenHook') != self.token_hook:
@@ -59,19 +60,29 @@ class MessengerSendView(APIView):
         
         mensaje_obj = self._save_message(request, file_url)
 
+        lastMessage = {
+            'IDChatMensaje': mensaje_obj.IDChatMensaje,
+            'IDChat': mensaje_obj.IDChat,
+            'IDSender': mensaje_obj.IDSender,
+            'Mensaje': mensaje_obj.Mensaje,
+            'Fecha': mensaje_obj.Fecha,
+            'Hora': mensaje_obj.Hora,
+            'Url': mensaje_obj.Url,
+            'Extencion': mensaje_obj.Extencion,
+            'Estado': mensaje_obj.Estado,
+            'origen': mensaje_obj.origen,
+            'user_id': mensaje_obj.user_id
+        }
+
+        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 
+            'IDRedSocial': setting.IDRedSocial,
+            'IDChat': mensaje_obj.IDChat,
+            'mensaje': lastMessage 
+            })
+
         return Response({
             'message': 'Mensaje enviado con éxito.',
-            'lastMessage': {
-                'IDChatMensaje': mensaje_obj.IDChatMensaje,
-                'IDChat': mensaje_obj.IDChat,
-                'Mensaje': mensaje_obj.Mensaje,
-                'Fecha': mensaje_obj.Fecha,
-                'Hora': mensaje_obj.Hora,
-                'Url': mensaje_obj.Url,
-                'Extencion': mensaje_obj.Extencion,
-                'Estado': mensaje_obj.Estado,
-                'origen': mensaje_obj.origen,
-            },
+            'lastMessage': lastMessage,
             'resultMedia': media,
             'data': result_api.get('response') if result_api else None,
             'status': result_api.get('status_code') if result_api else None,
@@ -279,3 +290,5 @@ class MessengerSendView(APIView):
             self.token      = cfg.Token
             self.token_hook = cfg.TokenHook
             self.url_api    = cfg.urlApi
+
+        return cfg

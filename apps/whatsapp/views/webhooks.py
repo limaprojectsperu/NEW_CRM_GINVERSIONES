@@ -136,8 +136,21 @@ class WhatsappWebhookAPIView(APIView):
             name = profile.get('name', phone)
 
         chat = self._get_or_create_chat(setting, phone, name)
-        self._save_incoming_message(chat, phone, message_content, media_info, button_id)
+        saved = self._save_incoming_message(chat, phone, message_content, media_info, button_id)
         self._handle_auto_response(setting, chat, message_content)
+
+        lastMessage = {
+            'IDChatMensaje': saved.IDChatMensaje,
+            'IDChat':       saved.IDChat,
+            'Telefono':     saved.Telefono,
+            'Mensaje':      saved.Mensaje,
+            'Fecha':        saved.Fecha,
+            'Hora':         saved.Hora,
+            'Url':          saved.Url,
+            'Extencion':    saved.Extencion,
+            'Estado':       saved.Estado,
+            'user_id':      saved.user_id
+        }
 
         # Push notification
         firebase_service = FirebaseServiceV1()
@@ -150,7 +163,11 @@ class WhatsappWebhookAPIView(APIView):
                 data={'type': 'router', 'route_name': 'WhatsappPage'}
             )
 
-        pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': setting.IDRedSocial })
+        pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 
+            'IDRedSocial': setting.IDRedSocial,
+            'IDChat': chat.IDChat, 
+            'mensaje': lastMessage
+            })
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
         """

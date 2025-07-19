@@ -189,7 +189,7 @@ class WebhookVerifyReceive(APIView):
             newChat = True
 
         # Guardar el mensaje
-        self._save_incoming_message(chat, sender_id, message_content, media_info)
+        mensaje_obj = self._save_incoming_message(chat, sender_id, message_content, media_info)
         
         # Respuesta automática
         if newChat:
@@ -201,22 +201,32 @@ class WebhookVerifyReceive(APIView):
             if template:
                 self.send_message(setting, chat, template.mensaje)
 
+        lastMessage = {
+            'IDChatMensaje': mensaje_obj.IDChatMensaje,
+            'IDChat': mensaje_obj.IDChat,
+            'IDSender': mensaje_obj.IDSender,
+            'Mensaje': mensaje_obj.Mensaje,
+            'Fecha': mensaje_obj.Fecha,
+            'Hora': mensaje_obj.Hora,
+            'Url': mensaje_obj.Url,
+            'Extencion': mensaje_obj.Extencion,
+            'Estado': mensaje_obj.Estado,
+            'origen': mensaje_obj.origen,
+            'user_id': mensaje_obj.user_id
+        }
+        
         # Open AI
         if setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
 
         # Push notification
-        firebase_service = FirebaseServiceV1()
-        tokens = get_user_tokens_by_permissions("messenger.index")
-        if len(tokens) > 0:
-            firebase_service.send_to_multiple_devices(
-                tokens=tokens,
-                title="Nuevo mensaje en Messenger",
-                body=message_content if message_content else message_notification,
-                data={'type': 'router', 'route_name': 'MessengerPage'}
-            )
+       
 
-        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 'IDRedSocial': IDRedSocial })
+        pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 
+            'IDRedSocial': IDRedSocial,
+            'IDChat': mensaje_obj.IDChat,
+            'mensaje': lastMessage 
+            })
 
 
     def _process_media_attachment(self, attachment, media_type, setting, sender_id):

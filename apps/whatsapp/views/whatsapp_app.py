@@ -10,7 +10,7 @@ from rest_framework import status
 from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsappMetaPlantillas
 from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
 from apps.users.views.wasabi import get_wasabi_file_data, save_file_to_wasabi
-
+from ...utils.pusher_client import pusher_client
 
 class WhatsappSendAPIView(APIView):
     """
@@ -28,7 +28,7 @@ class WhatsappSendAPIView(APIView):
         data = request.data
 
         # 1) Cargar configuración dinámica
-        self._init_setting(data.get('IDRedSocial'))
+        setting = self._init_setting(data.get('IDRedSocial'))
 
         # 2) Validar tokenHook
         if data.get('tokenHook') != self.token_hook:
@@ -104,18 +104,28 @@ class WhatsappSendAPIView(APIView):
         
         saved = self._save_message(request, file_url, msjPlantilla)
 
+        lastMessage = {
+            'IDChatMensaje': saved.IDChatMensaje,
+            'IDChat':       saved.IDChat,
+            'Telefono':     saved.Telefono,
+            'Mensaje':      saved.Mensaje,
+            'Fecha':        saved.Fecha,
+            'Hora':         saved.Hora,
+            'Url':          saved.Url,
+            'Extencion':    saved.Extencion,
+            'Estado':       saved.Estado,
+            'user_id':      saved.user_id
+        }
+
+        pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 
+            'IDRedSocial': setting.IDRedSocial, 
+            'IDChat': saved.IDChat,
+            'mensaje': lastMessage
+            })
+
         return JsonResponse({
             'message': 'Mensaje enviado con éxito.',
-            'lastMessage': {
-                'IDChatMensaje': saved.IDChatMensaje,
-                'IDChat':       saved.IDChat,
-                'Mensaje':      saved.Mensaje,
-                'Fecha':        saved.Fecha,
-                'Hora':         saved.Hora,
-                'Url':          saved.Url,
-                'Extencion':    saved.Extencion,
-                'Estado':       saved.Estado,
-            },
+            'lastMessage': lastMessage,
             'resultMedia': media,
             'data':        result.get('response')   if result else None,
             'status':      result.get('status_code') if result else None,
@@ -132,6 +142,8 @@ class WhatsappSendAPIView(APIView):
             self.url_api    = cfg.urlApi
             self.template   = cfg.Template
             self.language   = cfg.Language
+
+        return cfg
 
     def _send_msg_api(self, payload_json):
         """Envía mensaje a la API de WhatsApp"""
