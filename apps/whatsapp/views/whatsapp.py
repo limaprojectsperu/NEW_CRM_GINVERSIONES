@@ -9,6 +9,7 @@ from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfigurac
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
+from apps.utils.pagination import PostDataPagination
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
@@ -53,8 +54,13 @@ class WhatsappList(APIView):
             qs = qs.filter(IDChat__in=matching_messages)
 
         qs = qs.order_by('-updated_at')
-        data = WhatsappSerializer(qs, many=True).data
-        return Response({'data': data})
+
+        # Paginacion
+        paginator = PostDataPagination(default_page_size=25)
+        paginated_qs = paginator.paginate_queryset(qs, request, view=self)
+        serializer = WhatsappSerializer(paginated_qs, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
 
 class WhatsappStore(APIView):
     """ POST /api/whatsapp/store/ """

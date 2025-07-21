@@ -13,6 +13,7 @@ from ..serializers import (
 )
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
+from apps.utils.pagination import PostDataPagination
 
 class ChatInternoList(APIView):
     """
@@ -61,9 +62,12 @@ class ChatInternoList(APIView):
 
         qs = qs.order_by('-updated_at')
 
-        serializer = ChatInternoSerializer(qs, many=True)
-        return Response({'data': serializer.data})
-
+        # Paginacion
+        paginator = PostDataPagination(default_page_size=25)
+        paginated_qs = paginator.paginate_queryset(qs, request, view=self)
+        serializer = ChatInternoSerializer(paginated_qs, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
 
 class ChatInternoMessages(APIView):
     """

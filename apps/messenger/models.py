@@ -16,6 +16,7 @@ class MessengerConfiguracion(models.Model):
     Estado       = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='Estado')
     openai       = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
+    responder_automaticamente = models.BooleanField(default=False) 
     enviar_quien_escribio = models.BooleanField(default=False) 
     
     class Meta:
