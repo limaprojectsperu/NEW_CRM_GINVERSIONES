@@ -220,7 +220,15 @@ class WebhookVerifyReceive(APIView):
             self.open_ai_response(setting, chat)
 
         # Push notification
-       
+        firebase_service = FirebaseServiceV1()
+        tokens = get_user_tokens_by_permissions("messenger.index")
+        if len(tokens) > 0:
+            firebase_service.send_to_multiple_devices(
+                tokens=tokens,
+                title="Nuevo mensaje en Messenger",
+                body=message_content if message_content else message_notification,
+                data={'type': 'router', 'route_name': 'MessengerPage'}
+            )
 
         pusher_client.trigger('py-messenger-channel', 'PyMessengerEvent', { 
             'IDRedSocial': IDRedSocial,
@@ -380,7 +388,8 @@ class WebhookVerifyReceive(APIView):
             Hora=Hora,
             Url=url,
             Extencion=json.dumps(extension_data) if extension_data else None,
-            Estado=2
+            Estado=2,
+            origen=2
         )
 
         # Actualizar chat
@@ -418,7 +427,10 @@ class WebhookVerifyReceive(APIView):
             messages.append({"role": role, "content": entry.Mensaje})
         
         res = chatbot.get_response(setting.marca_id, messages)
-        self.send_message(setting, chat, res, 2)
+        self.send_message(setting, chat, res, 3)
+
+        chat.respuesta_generada_openai = True
+        chat.save()
 
     def send_message(self, setting, chat, mensaje, origen=1):
         """

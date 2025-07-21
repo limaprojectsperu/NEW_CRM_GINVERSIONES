@@ -341,7 +341,8 @@ class WhatsappWebhookAPIView(APIView):
             Hora=Hora,
             Url=url,
             Extencion=json.dumps(extension_data) if extension_data else None,
-            Estado=2
+            Estado=2,
+            origen=2
         )
 
         dateNative = get_naive_peru_time()
@@ -396,7 +397,10 @@ class WhatsappWebhookAPIView(APIView):
         messages = [{"role": "assistant" if entry.Telefono == setting.Telefono else "user", "content": entry.Mensaje} for entry in ultimos_mensajes]
         
         res = chatbot.get_response(setting.marca_id, messages)
-        self.send_message(setting, chat, res, 2)
+        self.send_message(setting, chat, res, 3)
+
+        chat.respuesta_generada_openai = True
+        chat.save()
 
     def send_message(self, setting, chat, mensaje, origen=1):
         """

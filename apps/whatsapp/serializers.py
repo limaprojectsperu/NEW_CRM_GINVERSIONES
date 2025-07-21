@@ -21,7 +21,7 @@ class WhatsappSerializer(serializers.ModelSerializer):
             'IDChat', 'IDRedSocial', 'Nombre', 'Telefono',
             'FechaUltimaPlantilla', 'updated_at', 'Avatar',
             'IDEL', 'IDSubEstadoLead', 'Estado', 'nuevos_mensajes', 'openai',
-            'lastMessage'
+            'respuesta_generada_openai', 'lastMessage'
         ]
 
     def get_lastMessage(self, obj):

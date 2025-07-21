@@ -214,7 +214,8 @@ class LeadViewSet(viewsets.ViewSet):
                 user_id=lead.usuario_asignado,
                 Mensaje=mensaje_contenido,
                 Fecha=Fecha,
-                Hora=Hora
+                Hora=Hora,
+                origen=2
             )
 
             self.send_message(whatsapp_config, whatsapp_chat, 'Plantilla')

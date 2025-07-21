@@ -1,4 +1,3 @@
-# apps/management/commands/messenger_scheduled_task.py
 import requests
 from requests.exceptions import RequestException
 from django.core.management.base import BaseCommand

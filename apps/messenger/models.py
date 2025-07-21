@@ -17,6 +17,7 @@ class MessengerConfiguracion(models.Model):
     openai       = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
     responder_automaticamente = models.BooleanField(default=False) 
+    responder_automaticamente_minutos = models.IntegerField(default=5, db_column='responder_automaticamente_minutos')
     enviar_quien_escribio = models.BooleanField(default=False) 
     
     class Meta:
@@ -39,7 +40,8 @@ class Messenger(models.Model):
     nuevos_mensajes = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     Estado      = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
     openai      = models.BooleanField(default=True) 
-
+    respuesta_generada_openai = models.BooleanField(default=False)
+    
     class Meta:
         db_table = 'Messenger'
         unique_together = (('IDChat', 'IDRedSocial'),)
@@ -59,8 +61,9 @@ class MessengerMensaje(models.Model):
     Url           = models.CharField(max_length=150, null=True, blank=True, db_column='Url')
     Extencion     = models.CharField(max_length=200, null=True, blank=True, db_column='Extencion')
     Estado        = models.IntegerField(default=1, null=True, blank=True, db_column='Estado', help_text='1: enviado, 2: recibido, 3: visto')
-    origen = models.IntegerField(default=1, null=True, blank=True, db_column='origen', help_text='1: default, 2: openai')
-
+    origen = models.IntegerField(default=1, null=True, blank=True, db_column='origen', help_text='1:enviados, 2: recibidos, 3: openai')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    
     class Meta:
         db_table = 'MessengerMensaje'
         unique_together = (('IDChatMensaje', 'IDChat'),)
