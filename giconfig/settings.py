@@ -18,6 +18,12 @@ from corsheaders.defaults import default_headers
 # Cargar variables del archivo .env
 load_dotenv()
 
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'America/Lima' 
+USE_TZ = True
+USE_I18N = True
+
 # Tamaño máximo de archivos en bytes (100MB)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
@@ -34,10 +40,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Configuración para archivos media
 MEDIA_URL = '/media/'  # Esto hace que los archivos media se sirvan desde la raíz
 MEDIA_ROOT = BASE_DIR
-
-# Zona horaria
-TIME_ZONE = 'America/Lima' 
-USE_TZ = True  
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -226,18 +228,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
