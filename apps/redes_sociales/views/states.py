@@ -9,15 +9,23 @@ from ..serializers import (
 
 class EstadoLeadViewSet(viewsets.ViewSet):
     """GET /api/estado-lead/ """
-    def listAll(self, request, red_social):
-        leads = EstadoLead.objects.filter(red_social=red_social).order_by('-IDEL')
-        serializer = EstadoLeadSerializer(leads, many=True)
+    def listAll(self, request, red_social, IDRedSocial):
+        qs = EstadoLead.objects.filter(red_social=red_social)
+        if IDRedSocial > 0:
+            qs = qs.filter(IDRedSocial=IDRedSocial)
+        qs = qs.order_by('-IDEL')
+
+        serializer = EstadoLeadSerializer(qs, many=True)
         return Response({'data': serializer.data})
 
     """GET /api/estado-lead/ devuelve solo where IDEstado = 1"""
-    def list(self, request, pk):
-        leads = EstadoLead.objects.filter(IDEstado=1, red_social=pk).order_by('IDEL')
-        serializer = EstadoLeadSerializer(leads, many=True)
+    def list(self, request, red_social, IDRedSocial):
+        qs = EstadoLead.objects.filter(IDEstado=1, red_social=red_social)
+        if IDRedSocial > 0:
+            qs = qs.filter(IDRedSocial=IDRedSocial)
+        qs = qs.order_by('IDEL')
+
+        serializer = EstadoLeadSerializer(qs, many=True)
         return Response({'data': serializer.data})
 
     def create(self, request):
@@ -64,15 +72,23 @@ class EstadoLeadViewSet(viewsets.ViewSet):
 
 class SubEstadoLeadViewSet(viewsets.ViewSet):
     """GET /api/subestado-lead/ """
-    def listAll(self, request, red_social):
-        subleads = SubEstadoLead.objects.filter(red_social=red_social).select_related('IDEL').order_by('-IDSubEstadoLead')
-        serializer = SubEstadoLeadSerializer(subleads, many=True)
+    def listAll(self, request, red_social, IDRedSocial):
+        qs = SubEstadoLead.objects.filter(red_social=red_social)
+        if IDRedSocial > 0:
+            qs = qs.filter(IDRedSocial=IDRedSocial)
+        qs = qs.select_related('IDEL').order_by('-IDSubEstadoLead')
+
+        serializer = SubEstadoLeadSerializer(qs, many=True)
         return Response({'data': serializer.data})
 
     """GET /api/subestado-lead/ devuelve solo where IDEstado = 1"""
-    def list(self, request, pk):
-        subleads = SubEstadoLead.objects.filter(IDEstado=1, red_social=pk).order_by('IDSubEstadoLead')
-        serializer = SubEstadoLeadSingleSerializer(subleads, many=True)
+    def list(self, request, red_social, IDRedSocial):
+        qs = SubEstadoLead.objects.filter(IDEstado=1, red_social=red_social)
+        if IDRedSocial > 0:
+            qs = qs.filter(IDRedSocial=IDRedSocial)
+        qs = qs.order_by('IDSubEstadoLead')
+
+        serializer = SubEstadoLeadSingleSerializer(qs, many=True)
         return Response({'data': serializer.data})
 
     def create(self, request):

@@ -39,6 +39,8 @@ class EstadoLead(models.Model):
     Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
     IDEstado = models.IntegerField(default=1, null=True, blank=True, db_column='IDEstado')
     red_social = models.IntegerField(default=1, blank=True, db_column='red_social', help_text='1: Messenger, 2: Whatsapp, 3: Chat Interno')
+    IDRedSocial = models.IntegerField(null=True, blank=True, db_column='IDRedSocial', help_text='0: Chat Interno, 1+: IDRedSocial')
+    id_crm = models.IntegerField(null=True, blank=True, db_column='id_crm', help_text='id externo')
 
     class Meta:
         db_table = 'EstadoLead'
@@ -54,6 +56,8 @@ class SubEstadoLead(models.Model):
     Color = models.CharField(max_length=20, null=True, blank=True, db_column='Color')
     IDEstado = models.IntegerField(default=1, null=True, blank=True, db_column='IDEstado')
     red_social = models.IntegerField(default=1, blank=True, db_column='red_social', help_text='1: Messenger, 2: Whatsapp, 3: Chat Interno')
+    IDRedSocial = models.IntegerField(null=True, blank=True, db_column='IDRedSocial', help_text='0: Chat Interno, 1+: IDRedSocial')
+    id_crm = models.IntegerField(null=True, blank=True, db_column='id_crm', help_text='id externo')
 
     class Meta:
         db_table = 'SubEstadoLead'

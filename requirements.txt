@@ -54,7 +54,6 @@ python-crontab==3.3.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 python-dotenv==1.1.0
-pytz==2025.2
 redis==6.2.0
 requests==2.32.3
 requests-oauthlib==2.0.0

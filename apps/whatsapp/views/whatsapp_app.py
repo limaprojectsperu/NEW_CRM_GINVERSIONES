@@ -40,6 +40,7 @@ class WhatsappSendAPIView(APIView):
 
         phone   = data.get('phone')
         text    = data.get('Mensaje', '')
+        message_24_hours = data.get('message_24_hours', True)
         result  = None
         media   = None
         msjPlantilla = None
@@ -54,7 +55,7 @@ class WhatsappSendAPIView(APIView):
         # 4) Si no hay chat reciente o mensaje == "plantilla", enviamos template
         if not chat or text.lower() == 'plantilla':
             # NUEVA FUNCIONALIDAD: Soporte para plantillas con variables e imágenes
-            template_params = [data.get('template_params_1', 'Emprendedor'), data.get('template_params_2', 'MIGUEL TANCUN')]
+            template_params = [data.get('template_params_1', 'Emprendedor'), data.get('template_params_2', setting.Nombre)]
             media_id = data.get('media_id')
             
             # Obtener plantilla desde BD
@@ -84,7 +85,10 @@ class WhatsappSendAPIView(APIView):
                     FechaUltimaPlantilla=get_naive_peru_time()
                 )
                 message_text = self._build_message_text(template_obj, template_params, bool(media_id))
-                msjPlantilla = f"Ya pasaron más de 24 horas desde el ultimo mensaje, por ello se envió una plantilla: {message_text}"
+                if message_24_hours:
+                    msjPlantilla = f"Ya pasaron más de 24 horas desde el ultimo mensaje, por ello se envió una plantilla: {message_text}"
+                else:
+                    msjPlantilla = f"{message_text}"
         else:
             # 5) Procesar media (subida o URL)
             media = self._send_media(request)

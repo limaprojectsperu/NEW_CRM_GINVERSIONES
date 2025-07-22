@@ -47,6 +47,8 @@ class SubEstadoLeadSerializer(serializers.ModelSerializer):
             'Color',
             'IDEstado',      
             'red_social', 
+            'IDRedSocial',
+            'id_crm',
         )
         read_only_fields = (
             'IDSubEstadoLead',

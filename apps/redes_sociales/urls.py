@@ -8,24 +8,24 @@ urlpatterns = [
     path('marcas', BrandViewSet.as_view({ 'get': 'list' })),
 
         # APIs para EstadoLead
-    path('lead-estados-all/<int:red_social>', EstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-estados-all/<int:red_social>/<int:IDRedSocial>', EstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-estado/<int:red_social>/<int:IDRedSocial>', EstadoLeadViewSet.as_view({ 'get': 'list' })),
     path('lead-estado', EstadoLeadViewSet.as_view({
         'post': 'create'
         }), name='estado-lead-list'),
     path('lead-estado/<int:pk>', EstadoLeadViewSet.as_view({
-        'get': 'list',
         'put': 'update',
         'delete': 'destroy'
         }), name='estado-lead-detail'),
     path('lead-estado/estado/<int:pk>', EstadoLeadViewSet.as_view({ 'put': 'updateState' })),
     
     # APIs para SubEstadoLead
-    path('lead-subestados-all/<int:red_social>', SubEstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-subestados-all/<int:red_social>/<int:IDRedSocial>', SubEstadoLeadViewSet.as_view({ 'get': 'listAll' })),
+    path('lead-subestado/<int:red_social>/<int:IDRedSocial>', SubEstadoLeadViewSet.as_view({ 'get': 'list' })),
     path('lead-subestado', SubEstadoLeadViewSet.as_view({
         'post': 'create'
         }), name='subestado-lead-list'),
     path('lead-subestado/<int:pk>', SubEstadoLeadViewSet.as_view({
-        'get': 'list',
         'put': 'update',
         'delete': 'destroy'
         }), name='subestado-lead-detail'),

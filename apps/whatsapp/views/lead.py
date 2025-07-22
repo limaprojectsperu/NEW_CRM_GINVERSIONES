@@ -16,6 +16,7 @@ from ..views.whatsapp_app import WhatsappSendAPIView
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
+from apps.users.models import Users
 
 class LeadViewSet(viewsets.ViewSet):
     """
@@ -218,7 +219,7 @@ class LeadViewSet(viewsets.ViewSet):
                 origen=2
             )
 
-            self.send_message(whatsapp_config, whatsapp_chat, 'Plantilla')
+            self.send_message(whatsapp_config, whatsapp_chat, 'Plantilla', lead)
             
             # Push notification
             firebase_service = FirebaseServiceV1()
@@ -248,11 +249,13 @@ class LeadViewSet(viewsets.ViewSet):
                 'message': f'Error al crear registro de WhatsApp: {str(e)}'
             }
     
-    def send_message(self, setting, chat, mensaje, origen=1):
+    def send_message(self, setting, chat, mensaje, lead, origen=1):
         """
         Envía mensaje usando WhatsappSendAPIView
         """
+        user = Users.objects.filter(co_usuario=lead.usuario_asignado).first()
         Fecha, Hora = get_date_time()
+
         message_data = {
             "IDRedSocial": setting.IDRedSocial,
             "tokenHook": setting.TokenHook,  
@@ -263,6 +266,9 @@ class LeadViewSet(viewsets.ViewSet):
             "Fecha": Fecha,
             "Hora": Hora,
             "origen": origen,
+            "message_24_hours": False,
+            "template_params_1": lead.nombre_lead,
+            "template_params_2": user if user.name else setting.Nombre,
         }
         
         factory = RequestFactory()
