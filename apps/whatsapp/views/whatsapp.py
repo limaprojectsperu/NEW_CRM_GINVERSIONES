@@ -172,6 +172,12 @@ class WhatsappUpdateOpenai(APIView):
         Whatsapp.objects.filter(IDChat=id).update(openai=request.data.get('openai'))
         return Response({'message': 'ok'})
 
+class WhatsappUpdateGeneratedResponse(APIView):
+    """ POST /api/whatsapp/generated-response/{id}/ """
+    def post(self, request, id):
+        Whatsapp.objects.filter(IDChat=id).update(respuesta_generada_openai=request.data.get('respuesta_generada_openai'))
+        return Response({'message': 'ok'})
+
 class WhatsappDestroy(APIView):
     """ POST /api/whatsapp/delete/{id}/ """
     def post(self, request, id):

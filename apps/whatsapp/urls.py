@@ -4,7 +4,7 @@ from .views.whatsapp_app import WhatsappSendAPIView
 from .views.whatsapp import (
     WhatsappListAll, WhatsappList, WhatsappStore, WhatsappShow, WhatsappSettingList,
     WhatsappSettingUser, WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, 
-    WhatsappUpdateOpenai, WhatsappDestroy
+    WhatsappUpdateOpenai, WhatsappUpdateGeneratedResponse, WhatsappDestroy
 )
 from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
@@ -42,6 +42,7 @@ urlpatterns = [
     path('whatsapp/update-chat/<int:id>', WhatsappUpdate.as_view(),    name='whatsapp-update'),
     path('whatsapp/update-date/<int:id>', WhatsappUpdateDate.as_view(), name='whatsapp-update-date'),
     path('whatsapp/update-openai/<int:id>', WhatsappUpdateOpenai.as_view(), name='whatsapp-update-openai'),
+    path('whatsapp/update-generated-response/<int:id>', WhatsappUpdateGeneratedResponse.as_view()),
     path('whatsapp/delete/<int:id>',      WhatsappDestroy.as_view(),    name='whatsapp-destroy'),
 
     # level

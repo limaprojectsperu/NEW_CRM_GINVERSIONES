@@ -91,6 +91,14 @@ class MessengerUpdateOpenai(APIView):
         Messenger.objects.filter(IDChat=id).update(openai=request.data.get('openai'))
         return Response({'message': 'ok'})
 
+class MessengerUpdateGeneratedResponse(APIView):
+    """
+    POST /api/messenger/update-generated-response/{id}/
+    """
+    def post(self, request, id):
+        Messenger.objects.filter(IDChat=id).update(respuesta_generada_openai=request.data.get('respuesta_generada_openai'))
+        return Response({'message': 'ok'})
+
 
 class MessengerSettingList(APIView):
     """

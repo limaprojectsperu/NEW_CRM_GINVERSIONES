@@ -115,7 +115,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'django_crontab',
+    'django_celery_beat',
+    'django_celery_results',
     'apps',
     'apps.users',
     'apps.redes_sociales',
@@ -136,19 +137,14 @@ MIDDLEWARE = [
     
 ]
 
-# Crontab 
-CRONJOBS = [
-     # Ejecutar cada 2 minutos para respuesta automática
-    ('*/2 * * * *', 'apps.management.commands.respond_automatically.Command', '>> /var/log/cron/django-crontab.log 2>&1'),
-    # Cada lunes a las 2:00 AM
-    #("0 2 * * 1", "apps.management.commands.import_data_task", ">> /code/cron_import_data.log 2>&1"),
-]
-
-CRONTAB_LOCK_JOBS = True 
-CRONTAB_COMMAND_SUFFIX = '2>&1'
-
-# Variables de entorno para cron (opcional, para debugging)
-CRONTAB_DJANGO_SETTINGS_MODULE = 'giconfig.settings'
+# Configuración de Celery
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # o usar RabbitMQ
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Lima'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Orígenes permitidos para las peticiones cross-site:
 CORS_ALLOW_ALL_ORIGINS = True

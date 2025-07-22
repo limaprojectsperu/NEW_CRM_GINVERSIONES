@@ -1,8 +1,8 @@
 from django.urls import path
 from .views.messenger import (
     MessengerList, MessengerMessages, MessengerDestroy,
-    MessengerUpdateDate, MessengerUpdateOpenai, MessengerSettingList,
-    MessengerUpdateLead, MessengerChatUpdate
+    MessengerUpdateDate, MessengerUpdateOpenai, MessengerUpdateGeneratedResponse,
+    MessengerSettingList, MessengerUpdateLead, MessengerChatUpdate
     )
 from .views.messenger_app import MessengerSendView
 from .views.webhooks_messenger import WebhookVerifyReceive
@@ -14,6 +14,7 @@ urlpatterns = [
     path('messenger/delete/<int:id>',         MessengerDestroy.as_view()),
     path('messenger/update-date/<int:id>',    MessengerUpdateDate.as_view()),
     path('messenger/update-openai/<int:id>',    MessengerUpdateOpenai.as_view()),
+    path('messenger/update-generated-response/<int:id>',    MessengerUpdateGeneratedResponse.as_view()),
     path('messenger/setting',                 MessengerSettingList.as_view()),
     path('messenger/update-lead/<int:id>',    MessengerUpdateLead.as_view()),
     path('messenger/update-chat/<int:id>',    MessengerChatUpdate.as_view()),
