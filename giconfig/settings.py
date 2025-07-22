@@ -139,13 +139,16 @@ MIDDLEWARE = [
 # Crontab 
 CRONJOBS = [
      # Ejecutar cada 2 minutos para respuesta automática
-    ('*/2 * * * *', 'apps.management.commands.respond_automatically.Command'),
+    ('*/2 * * * *', 'apps.management.commands.respond_automatically.Command', '>> /var/log/cron/django-crontab.log 2>&1'),
     # Cada lunes a las 2:00 AM
     #("0 2 * * 1", "apps.management.commands.import_data_task", ">> /code/cron_import_data.log 2>&1"),
 ]
 
 CRONTAB_LOCK_JOBS = True 
 CRONTAB_COMMAND_SUFFIX = '2>&1'
+
+# Variables de entorno para cron (opcional, para debugging)
+CRONTAB_DJANGO_SETTINGS_MODULE = 'giconfig.settings'
 
 # Orígenes permitidos para las peticiones cross-site:
 CORS_ALLOW_ALL_ORIGINS = True
