@@ -141,7 +141,7 @@ CRONJOBS = [
      # Ejecutar cada 2 minutos para respuesta automática
     ('*/2 * * * *', 'apps.management.commands.respond_automatically.Command'),
     # Cada lunes a las 2:00 AM
-    #("0 2 * * 1", "apps.management.commands.import_data_task", ">> /code/cron_import_data.log 2>&1"),
+    ("0 2 * * 1", "apps.management.commands.import_data_task", ">> /code/cron_import_data.log 2>&1"),
 ]
 
 CRONTAB_LOCK_JOBS = True 
