@@ -13,7 +13,6 @@ from django.test import RequestFactory
 from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from ..views.whatsapp_app import WhatsappSendAPIView
-from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
 from apps.users.models import Users
@@ -232,8 +231,6 @@ class LeadViewSet(viewsets.ViewSet):
                     data={'type': 'router', 'route_name': 'WhatsappPage'}
                 )
 
-            pusher_client.trigger('py-whatsapp-channel', 'PyWhatsappEvent', { 'IDRedSocial': whatsapp_config.IDRedSocial })
-
             return {
                 'status': 'success',
                 'whatsapp_chat_id': whatsapp_chat.IDChat,
@@ -290,29 +287,47 @@ class LeadViewSet(viewsets.ViewSet):
         """
         Generar mensaje inicial basado en los datos del Lead
         """
+        def split_and_truncate(text, first_max=42, second_max=40):
+            if not text:
+                return ["", ""]
+            part1 = text[:first_max]
+            part2 = text[first_max:]
+            if len(part2) > second_max:
+                part2 = part2[:second_max] + "..."
+            return [part1, part2] if part2 else [part1]
+
+        medio_parts = split_and_truncate(lead.medio_captacion)
+    
+        #📱 Celular: {lead.celular} #debajo del nombre
         mensaje = f"""🆕 NUEVO LEAD REGISTRADO
 
-        👤 Nombre: {lead.nombre_lead}
-        📱 Celular: {lead.celular}
-        🏢 Marca: {lead.marca}
-        💰 Monto Solicitado: S/. {lead.monto_solicitado}
+    👤 Nombre: {lead.nombre_lead}
+    🏢 Marca: {lead.marca}
+    💰 Monto Solicitado: S/. {lead.monto_solicitado}
 
-        📋 DETALLES:
-        • Código: {lead.codigo_solicitud}
-        • Medio de Captación: {lead.medio_captacion}
-        • Condición: {lead.condicion}
-        • Tipo de Garantía: {lead.tipo_garantia}
+    📋 DETALLES:
+    • Código: {lead.codigo_solicitud}
+    • Medio de Captación: 
+    {medio_parts[0]}""" 
 
-        📍 UBICACIÓN:
-        • Departamento: {lead.departamento}
-        • Provincia: {lead.provincia}
-        • Distrito: {lead.distrito}
+        if len(medio_parts) > 1 and medio_parts[1]:
+            mensaje += f"""
+    {medio_parts[1]}""" 
 
-        🏠 Propiedad en RRPP: {'✅ Sí' if lead.propiedad_registros_publicos else '❌ No'}
+        mensaje += f"""
+    • Condición: {lead.condicion}
+    • Tipo de Garantía: {lead.tipo_garantia}
 
-        📅 Fecha de Registro: {lead.fecha_registro.strftime('%d/%m/%Y %H:%M') if lead.fecha_registro else 'No especificada'}
-        📅 Fecha de Asignación: {lead.fecha_asignacion.strftime('%d/%m/%Y %H:%M') if lead.fecha_asignacion else 'No especificada'}
+    📍 UBICACIÓN:
+    • Departamento: {lead.departamento}
+    • Provincia: {lead.provincia}
+    • Distrito: {lead.distrito}
 
-        🔄 Ocurrencia: {lead.ocurrencia}"""
-        
-        return mensaje[:2000]  # Limitar a 2000 caracteres según el modelo
+    🏠 Propiedad en RRPP: {'✅ Sí' if lead.propiedad_registros_publicos else '❌ No'}
+
+    📅 Fecha de Registro: {lead.fecha_registro.strftime('%d/%m/%Y %H:%M') if lead.fecha_registro else 'No especificada'}
+    📅 Fecha de Asignación: {lead.fecha_asignacion.strftime('%d/%m/%Y %H:%M') if lead.fecha_asignacion else 'No especificada'}
+
+    🔄 Ocurrencia: {lead.ocurrencia}"""
+
+        return mensaje[:2000] # Limitar a 2000 caracteres según el modelo

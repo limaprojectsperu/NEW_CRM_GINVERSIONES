@@ -5,11 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func  import get_naive_peru_time
-from ..models import Messenger, MessengerMensaje, MessengerConfiguracion
+from ..models import Messenger, MessengerMensaje
 from ..serializers import (
     MessengerSerializer,
-    MessengerMensajeSerializer,
-    MessengerConfiguracionSerializer
+    MessengerMensajeSerializer
 )
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
@@ -40,7 +39,7 @@ class MessengerList(APIView):
         qs = qs.order_by('-updated_at')
 
         # Paginacion
-        paginator = PostDataPagination(default_page_size=25)
+        paginator = PostDataPagination(default_page_size=20)
         paginated_qs = paginator.paginate_queryset(qs, request, view=self)
         serializer = MessengerSerializer(paginated_qs, many=True)
         
@@ -98,18 +97,7 @@ class MessengerUpdateGeneratedResponse(APIView):
     def post(self, request, id):
         Messenger.objects.filter(IDChat=id).update(respuesta_generada_openai=request.data.get('respuesta_generada_openai'))
         return Response({'message': 'ok'})
-
-
-class MessengerSettingList(APIView):
-    """
-    GET /api/messenger/setting/
-    """
-    def get(self, request):
-        qs = MessengerConfiguracion.objects.filter(Estado=1)
-        serializer = MessengerConfiguracionSerializer(qs, many=True)
-        return Response({'data': serializer.data})
-
-
+        
 class MessengerUpdateLead(APIView):
     """
     POST /api/messenger/update-lead/{id}/

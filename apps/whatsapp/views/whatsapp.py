@@ -5,8 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
-from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsappConfiguracion, WhatsappConfiguracionUser, WhatsapChatUser
-from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer, WhatsappConfiguracionSerializer
+from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsapChatUser
+from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
 from apps.utils.pagination import PostDataPagination
@@ -56,7 +56,7 @@ class WhatsappList(APIView):
         qs = qs.order_by('-updated_at')
 
         # Paginacion
-        paginator = PostDataPagination(default_page_size=25)
+        paginator = PostDataPagination(default_page_size=20)
         paginated_qs = paginator.paginate_queryset(qs, request, view=self)
         serializer = WhatsappSerializer(paginated_qs, many=True)
         
@@ -93,32 +93,6 @@ class WhatsappShow(APIView):
         data = WhatsappMensajesSerializer(msgs, many=True).data
         return Response({'data': data})
     
-class WhatsappSettingList(APIView):
-    """
-    GET /api/whatsapp/setting/
-    """
-    def get(self, request):
-        qs = WhatsappConfiguracion.objects.filter(Estado=1)
-        serializer = WhatsappConfiguracionSerializer(qs, many=True)
-        return Response({'data': serializer.data})
-
-class WhatsappSettingUser(APIView):
-    """
-    GET /api/whatsapp/setting/{id}
-    """
-    def get(self, request, id):
-        whatsapp_ids_for_user = WhatsappConfiguracionUser.objects.filter(
-            user_id=id
-         ).values_list('IDRedSocial', flat=True)
-
-        qs = WhatsappConfiguracion.objects.filter(
-            Estado=1,
-            IDRedSocial__in=whatsapp_ids_for_user # '__in' permite filtrar por una lista de valores
-        ).order_by('IDRedSocial') 
-
-        serializer = WhatsappConfiguracionSerializer(qs, many=True)
-        return Response({'data': serializer.data})
-
 class WhatsappUpdateLead(APIView):
     """
     POST /api/whatsapp/update-lead/{id}/

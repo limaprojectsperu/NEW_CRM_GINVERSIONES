@@ -7,7 +7,7 @@ urlpatterns = [
     # messenger api
     path('marcas', BrandViewSet.as_view({ 'get': 'list' })),
 
-        # APIs para EstadoLead
+    # APIs para EstadoLead
     path('lead-estados-all/<int:red_social>/<int:IDRedSocial>', EstadoLeadViewSet.as_view({ 'get': 'listAll' })),
     path('lead-estado/<int:red_social>/<int:IDRedSocial>', EstadoLeadViewSet.as_view({ 'get': 'list' })),
     path('lead-estado', EstadoLeadViewSet.as_view({
