@@ -448,8 +448,4 @@ class WhatsappBulkSendAPIView(APIView):
                 placeholder = f"{{{{{i + 1}}}}}"
                 message_text = message_text.replace(placeholder, str(param))
 
-        # Opcionalmente, agregar una nota si el mensaje incluye un archivo.
-        if has_media:
-            message_text += " (Con archivo adjunto)"
-
         return message_text

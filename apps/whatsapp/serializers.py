@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser, WhatsappProfileAccepts, Lead, WhatsapChatUser 
-from apps.redes_sociales.models import Marca, EstadoLead, SubEstadoLead 
+from apps.redes_sociales.models import Marca, EstadoLead, SubEstadoLead
+from apps.users.models import Users 
 
 class WhatsappMensajesSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,6 +25,7 @@ class WhatsappSerializer(serializers.ModelSerializer):
             'FechaUltimaPlantilla', 'updated_at', 'Avatar',
             'IDEL', 'nombre_estado',
             'IDSubEstadoLead', 'nombre_subestado',
+            'fecha_agenda', 'user_id_agenda',
             'Estado', 'nuevos_mensajes', 'openai',
             'respuesta_generada_openai', 'lastMessage'
         ]
@@ -54,6 +56,49 @@ class WhatsappSerializer(serializers.ModelSerializer):
             except SubEstadoLead.DoesNotExist:
                 return None
         return None
+
+class WhatsappAgendaSerializer(serializers.ModelSerializer):
+    usuario_agenda = serializers.SerializerMethodField()
+    nombre_estado = serializers.SerializerMethodField()
+    nombre_subestado = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Whatsapp
+        fields = [
+            'IDChat', 'IDRedSocial', 'Nombre', 'Telefono',
+            'FechaUltimaPlantilla', 'updated_at', 'Avatar',
+            'IDEL', 'nombre_estado',
+            'IDSubEstadoLead', 'nombre_subestado',
+            'fecha_agenda', 'user_id_agenda', 'usuario_agenda',
+            'Estado', 'nuevos_mensajes', 'openai',
+            'respuesta_generada_openai'
+        ]
+    def get_usuario_agenda(self, obj):
+        if obj.user_id_agenda:
+            try:
+                data = Users.objects.get(co_usuario=obj.user_id_agenda)
+                return data.name
+            except Users.DoesNotExist:
+                return None
+        return None
+    
+    def get_nombre_estado(self, obj):
+        if obj.IDEL:
+            try:
+                estado = EstadoLead.objects.get(IDEL=obj.IDEL)
+                return estado.Nombre
+            except EstadoLead.DoesNotExist:
+                return None
+        return None
+
+    def get_nombre_subestado(self, obj):
+        if obj.IDSubEstadoLead:
+            try:
+                subestado = SubEstadoLead.objects.get(IDSubEstadoLead=obj.IDSubEstadoLead)
+                return subestado.Nombre
+            except SubEstadoLead.DoesNotExist:
+                return None
+        return None
     
 class WhatsappSingleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,6 +111,11 @@ class WhatsappConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsappConfiguracion
         fields = '__all__'
+        extra_kwargs = {
+            'Token': {'write_only': True},
+            'url_graph_v': {'write_only': True},
+            'urlApi': {'write_only': True}
+        }
     
     def get_marca(self, obj):
         try:

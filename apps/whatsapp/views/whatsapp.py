@@ -6,10 +6,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time
 from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsapChatUser
-from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappMensajesSerializer
+from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappAgendaSerializer, WhatsappMensajesSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
 from apps.utils.pagination import PostDataPagination
+from datetime import datetime, time
 
 class WhatsappListAll(APIView):
     """ GET /api/whatsapp/all/ """
@@ -62,6 +63,28 @@ class WhatsappList(APIView):
         
         return paginator.get_paginated_response(serializer.data)
 
+class WhatsappAgendaList(APIView):
+    """ POST /api/whatsapp/agenda/ """
+    def post(self, request,  id):
+        user_id = request.data.get('user_id', -1) # Si no tiene el ID, se puede ver todo los chats
+
+        start_obj = datetime.strptime(request.data.get('start_date'), '%Y-%m-%d').date()
+        end_obj = datetime.strptime(request.data.get('end_date'), '%Y-%m-%d').date()
+        start_datetime = datetime.combine(start_obj, time.min)
+        end_datetime = datetime.combine(end_obj, time.max)
+        
+        qs = Whatsapp.objects.filter(IDRedSocial=id, Estado=1)
+        qs = qs.filter(fecha_agenda__range=[start_datetime, end_datetime])
+        
+        if user_id > 0:
+            # Get all IDChat values associated with the given user_id from WhatsapChatUser
+            chat_ids_for_user = WhatsapChatUser.objects.filter(user_id=user_id).values_list('IDChat', flat=True)
+            # Filter the main queryset using these chat IDs
+            qs = qs.filter(IDChat__in=chat_ids_for_user)
+
+        data = WhatsappAgendaSerializer(qs, many=True).data
+        return Response({'data': data})
+    
 class WhatsappStore(APIView):
     """ POST /api/whatsapp/store/ """
     def post(self, request):
@@ -151,6 +174,15 @@ class WhatsappUpdateGeneratedResponse(APIView):
     def post(self, request, id):
         Whatsapp.objects.filter(IDChat=id).update(respuesta_generada_openai=request.data.get('respuesta_generada_openai'))
         return Response({'message': 'ok'})
+
+class WhatsappUpdateAgenda(APIView):
+    """ PUT /api/whatsapp/generated-response/{id}/ """
+    def put(self, request, id):
+        Whatsapp.objects.filter(IDChat=id).update(
+            fecha_agenda=request.data.get('fecha_agenda'),
+            user_id_agenda=request.data.get('user_id_agenda'),
+            )
+        return Response({'message': 'Agenda guardada con éxito.'})
 
 class WhatsappDestroy(APIView):
     """ POST /api/whatsapp/delete/{id}/ """

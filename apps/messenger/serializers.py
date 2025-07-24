@@ -55,6 +55,11 @@ class MessengerConfiguracionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessengerConfiguracion
         fields = '__all__'
+        extra_kwargs = {
+            'Token': {'write_only': True},
+            'url_graph_v': {'write_only': True},
+            'urlApi': {'write_only': True}
+        }
 
     def get_marca(self, obj):
         try:

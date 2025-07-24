@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Users, UserTokens, Permissions, Perfiles, PerfilPermissions
+from .models import Users, UserTokens, Permissions, Perfiles, PerfilPermissions, Acceso, AccesoPerfil
 
 class UsersSerializer(serializers.ModelSerializer):
     perfil = serializers.SerializerMethodField()
@@ -8,7 +8,8 @@ class UsersSerializer(serializers.ModelSerializer):
         model = Users
         fields = '__all__'
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'password_app': {'write_only': True}
         }
         
     def get_perfil(self, obj):
@@ -40,3 +41,18 @@ class PerfilPermissionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerfilPermissions
         fields = '__all__'
+
+class AccesoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Acceso
+        fields = ['acceso_id', 'acceso', 'estado']
+
+class AccesoPerfilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccesoPerfil
+        fields = ['acceso_id', 'perfil_id']
+
+class AccesoTreeSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField()
+    children = serializers.ListField(child=serializers.DictField(), required=False)

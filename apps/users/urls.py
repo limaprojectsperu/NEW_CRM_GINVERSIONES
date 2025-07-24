@@ -5,6 +5,7 @@ from .views.permissions import PermissionsViewSet
 from .views.perfiles import PerfilesViewSet 
 from .views.perfil_permissions import PerfilPermissionsViewSet 
 from .views.wasabi import WasabiFileHandler, WasabiFileUpload
+from .views.access import AccesosViewSet
 
 urlpatterns = [
      # URLs para Users
@@ -56,6 +57,23 @@ urlpatterns = [
         #'put': 'update',
         #'delete': 'destroy'
     #}), name='perfil-permissions-detail'),
+
+    # Obtener accesos por perfil
+    path('access/perfil/<int:perfil_id>/', AccesosViewSet.as_view({
+        'get': 'get_access_perfil'
+    }), name='access-perfil'),
+    # Obtener estructura jerárquica de accesos
+    path('access/tree/', AccesosViewSet.as_view({
+        'get': 'get_access_tree'
+    }), name='access-tree'),
+    # Guardar accesos para un perfil
+    path('access/perfil/<int:perfil_id>/store/', AccesosViewSet.as_view({
+        'post': 'store_access_perfil'
+    }), name='access-store'),
+    # Mostrar accesos de un perfil
+    path('access/perfil/<int:perfil_id>/show/', AccesosViewSet.as_view({
+        'get': 'show_access_perfil'
+    }), name='access-show'),
 
     # Ruta específica para URLs pre-firmadas (redirección), imagenes
     re_path(

@@ -2,8 +2,8 @@ from django.urls import path
 from .views.webhooks import WhatsappWebhookAPIView
 from .views.whatsapp_app import WhatsappSendAPIView
 from .views.whatsapp import (
-    WhatsappListAll, WhatsappList, WhatsappStore, WhatsappShow,
-    WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, 
+    WhatsappListAll, WhatsappList, WhatsappAgendaList, WhatsappStore, WhatsappShow,
+    WhatsappUpdateLead, WhatsappUpdate, WhatsappUpdateDate, WhatsappUpdateAgenda,
     WhatsappUpdateOpenai, WhatsappUpdateGeneratedResponse, WhatsappDestroy
 )
 from .views.levels import NivelViewSet
@@ -42,6 +42,7 @@ urlpatterns = [
     # whatsapp api
     path('whatsapp/by-setting/<int:id>', WhatsappListAll.as_view(), name='whatsapp-list-all'),
     path('whatsapp/all/<int:id>', WhatsappList.as_view(), name='whatsapp-list'),
+    path('whatsapp/agenda/<int:id>', WhatsappAgendaList.as_view()),
     path('whatsapp/store', WhatsappStore.as_view(),       name='whatsapp-store'),
     path('whatsapp/message/<int:id>', WhatsappShow.as_view(),   name='whatsapp-show'),
     path('whatsapp/update-lead/<int:id>',    WhatsappUpdateLead.as_view()),
@@ -49,6 +50,7 @@ urlpatterns = [
     path('whatsapp/update-date/<int:id>', WhatsappUpdateDate.as_view(), name='whatsapp-update-date'),
     path('whatsapp/update-openai/<int:id>', WhatsappUpdateOpenai.as_view(), name='whatsapp-update-openai'),
     path('whatsapp/update-generated-response/<int:id>', WhatsappUpdateGeneratedResponse.as_view()),
+    path('whatsapp/update-agenda/<int:id>', WhatsappUpdateAgenda.as_view()),
     path('whatsapp/delete/<int:id>',      WhatsappDestroy.as_view(),    name='whatsapp-destroy'),
 
     # level
