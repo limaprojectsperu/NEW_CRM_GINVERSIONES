@@ -192,7 +192,7 @@ class LeadViewSet(viewsets.ViewSet):
                     Telefono='51'+lead.celular,
                     FechaUltimaPlantilla=get_naive_peru_time_delta(days=-2),
                     updated_at=timezone.now(),
-                    IDEL=find_state_id(2, 'No leído'),
+                    IDEL=find_state_id(2, 'PENDIENTE DE LLAMADA'),
                     nuevos_mensajes=1,
                     Estado=1
                 )

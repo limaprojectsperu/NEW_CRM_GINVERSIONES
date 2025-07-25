@@ -131,8 +131,6 @@ class WhatsappShow(APIView):
         chat = Whatsapp.objects.filter(IDChat=id).first()
         if chat:
             chat.nuevos_mensajes = 0
-            if chat.IDEL == find_state_id(2, 'No leído'):
-                chat.IDEL = find_state_id(2, 'Leído')
             chat.save()
 
         data = WhatsappMensajesSerializer(msgs, many=True).data

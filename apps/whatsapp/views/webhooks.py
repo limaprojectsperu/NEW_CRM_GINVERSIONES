@@ -294,7 +294,7 @@ class WhatsappWebhookAPIView(APIView):
             Telefono=phone,
             defaults={
                 'Nombre': name,
-                'IDEL': find_state_id(2, 'No leído'),
+                'IDEL': find_state_id(2, 'PENDIENTE DE LLAMADA'),
                 'Estado': 1
             }
         )

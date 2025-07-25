@@ -413,7 +413,7 @@ class WhatsappBulkSendAPIView(APIView):
                 Telefono=phone,
                 FechaUltimaPlantilla=current_time,
                 updated_at=current_time,
-                IDEL=find_state_id(2, 'No leído'),
+                IDEL=find_state_id(2, 'PENDIENTE DE LLAMADA'),
                 Estado=1
             )
         
