@@ -84,6 +84,28 @@ class WhatsappAgendaList(APIView):
 
         data = WhatsappAgendaSerializer(qs, many=True).data
         return Response({'data': data})
+
+class WhatsappNextTemplateList(APIView):
+    """ POST /api/whatsapp/next-template/ """
+    def post(self, request,  id):
+        user_id = request.data.get('user_id', -1) # Si no tiene el ID, se puede ver todo los chats
+
+        start_obj = datetime.strptime(request.data.get('start_date'), '%Y-%m-%d').date()
+        end_obj = datetime.strptime(request.data.get('end_date'), '%Y-%m-%d').date()
+        start_datetime = datetime.combine(start_obj, time.min)
+        end_datetime = datetime.combine(end_obj, time.max)
+        
+        qs = Whatsapp.objects.filter(IDRedSocial=id, Estado=1)
+        qs = qs.filter(fecha_proxima_plantilla__range=[start_datetime, end_datetime])
+        
+        if user_id > 0:
+            # Get all IDChat values associated with the given user_id from WhatsapChatUser
+            chat_ids_for_user = WhatsapChatUser.objects.filter(user_id=user_id).values_list('IDChat', flat=True)
+            # Filter the main queryset using these chat IDs
+            qs = qs.filter(IDChat__in=chat_ids_for_user)
+
+        data = WhatsappAgendaSerializer(qs, many=True).data
+        return Response({'data': data})
     
 class WhatsappStore(APIView):
     """ POST /api/whatsapp/store/ """
@@ -183,6 +205,15 @@ class WhatsappUpdateAgenda(APIView):
             user_id_agenda=request.data.get('user_id_agenda'),
             )
         return Response({'message': 'Agenda guardada con éxito.'})
+
+class WhatsappUpdateNextTemplate(APIView):
+    """ PUT /api/whatsapp/generated-response/{id}/ """
+    def put(self, request, id):
+        Whatsapp.objects.filter(IDChat=id).update(
+            fecha_proxima_plantilla=request.data.get('fecha_proxima_plantilla'),
+            user_id_proxima_plantilla=request.data.get('user_id_proxima_plantilla'),
+            )
+        return Response({'message': 'Plantilla programada para el envió. '})
 
 class WhatsappDestroy(APIView):
     """ POST /api/whatsapp/delete/{id}/ """

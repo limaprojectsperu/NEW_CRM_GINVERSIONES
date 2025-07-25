@@ -26,6 +26,7 @@ class WhatsappSerializer(serializers.ModelSerializer):
             'IDEL', 'nombre_estado',
             'IDSubEstadoLead', 'nombre_subestado',
             'fecha_agenda', 'user_id_agenda',
+            'fecha_proxima_plantilla', 'user_id_proxima_plantilla',
             'Estado', 'nuevos_mensajes', 'openai',
             'respuesta_generada_openai', 'lastMessage'
         ]
@@ -70,6 +71,7 @@ class WhatsappAgendaSerializer(serializers.ModelSerializer):
             'IDEL', 'nombre_estado',
             'IDSubEstadoLead', 'nombre_subestado',
             'fecha_agenda', 'user_id_agenda', 'usuario_agenda',
+            'fecha_proxima_plantilla', 'user_id_proxima_plantilla',
             'Estado', 'nuevos_mensajes', 'openai',
             'respuesta_generada_openai'
         ]

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Users, UserTokens, Permissions, Perfiles, PerfilPermissions, Acceso, AccesoPerfil
+from .models import Users, UserTokens, Perfiles, Acceso, AccesoPerfil
 
 class UsersSerializer(serializers.ModelSerializer):
     perfil = serializers.SerializerMethodField()
@@ -27,25 +27,15 @@ class UserTokensSerializer(serializers.ModelSerializer):
         model = UserTokens
         fields = '__all__'
 
-class PermissionsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Permissions
-        fields = '__all__'
-
 class PerfilesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perfiles
         fields = '__all__'
 
-class PerfilPermissionsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PerfilPermissions
-        fields = '__all__'
-
 class AccesoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Acceso
-        fields = ['acceso_id', 'acceso', 'estado']
+        fields = ['acceso_id', 'acceso', 'icono', 'estado']
 
 class AccesoPerfilSerializer(serializers.ModelSerializer):
     class Meta:

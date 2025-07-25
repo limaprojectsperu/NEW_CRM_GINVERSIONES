@@ -3,25 +3,25 @@ from apps.users.models import UserTokens
 from apps.whatsapp.models import WhatsappConfiguracionUser, WhatsapChatUser
 
 # Método alternativo usando SQL raw (más eficiente para consultas complejas)
-def get_user_tokens_by_permissions(permission):
-
+def get_user_tokens_by_access_id(acceso_id):
+    """
+    Versión usando SQL raw (más eficiente para consultas complejas)
+    """
     try:
         query = """
-        SELECT ut.token
+        SELECT DISTINCT ut.token
         FROM user_tokens ut
         INNER JOIN users u ON ut.user_id = u.co_usuario
-        INNER JOIN perfil_permissions pp ON u.co_perfil = pp.perfil_id
-        INNER JOIN permissions p ON pp.permission_id = p.id
-        WHERE p.name = %s 
-        AND p.state = 1 
+        INNER JOIN acceso_perfiles ap ON u.co_perfil = ap.perfil_id
+        WHERE ap.acceso_id = %s 
+        AND u.in_estado = 1 
         AND ut.state = 1
-        AND u.in_estado = 1
         AND ut.token IS NOT NULL
         AND ut.token != ''
         """
         
         with connection.cursor() as cursor:
-            cursor.execute(query, [permission])
+            cursor.execute(query, [acceso_id])
             results = cursor.fetchall()
         
         # Extraer solo los tokens del resultado
@@ -30,6 +30,7 @@ def get_user_tokens_by_permissions(permission):
         return tokens
         
     except Exception as e:
+        print(f"Error en get_user_tokens_by_access_id: {e}")
         return []
     
 def get_user_tokens_by_whatsapp(IDRedSocial, IDChat):
@@ -52,7 +53,6 @@ def get_user_tokens_by_whatsapp(IDRedSocial, IDChat):
     return list(tokens)
 
 def get_users_tokens(miembros):
-
     user_ids = [miembro.user_id for miembro in miembros]
     # Filtrar los UserTokens usando esos user_ids
     user_tokens = UserTokens.objects.filter(user_id__in=user_ids)

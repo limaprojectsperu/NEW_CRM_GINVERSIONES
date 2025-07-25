@@ -12,7 +12,7 @@ from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.datetime_func import get_naive_peru_time, get_date_time
-from apps.utils.tokens_phone import get_user_tokens_by_permissions
+from apps.utils.tokens_phone import get_user_tokens_by_access_id
 from apps.openai.openai_chatbot import ChatbotService
 from django.test import RequestFactory
 from rest_framework.request import Request
@@ -221,7 +221,7 @@ class WebhookVerifyReceive(APIView):
 
         # Push notification
         firebase_service = FirebaseServiceV1()
-        tokens = get_user_tokens_by_permissions("messenger.index")
+        tokens = get_user_tokens_by_access_id('04010000')
         if len(tokens) > 0:
             firebase_service.send_to_multiple_devices(
                 tokens=tokens,

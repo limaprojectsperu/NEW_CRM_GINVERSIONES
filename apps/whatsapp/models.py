@@ -57,6 +57,8 @@ class Whatsapp(models.Model):
     nuevos_mensajes      = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     fecha_agenda         = models.DateTimeField(null=True, blank=True, db_column='fecha_agenda')
     user_id_agenda       = models.IntegerField(null=True, blank=True, db_column='user_id_agenda')
+    fecha_proxima_plantilla = models.DateTimeField(null=True, blank=True, db_column='fecha_proxima_plantilla')
+    user_id_proxima_plantilla = models.IntegerField(null=True, blank=True, db_column='user_id_proxima_plantilla')
     Estado               = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
     openai               = models.BooleanField(default=True) 
     respuesta_generada_openai = models.BooleanField(default=False)

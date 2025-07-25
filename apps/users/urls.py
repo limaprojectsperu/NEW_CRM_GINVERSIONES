@@ -1,9 +1,7 @@
 from django.urls import path, re_path
 from .views.users import UsersViewSet 
 from .views.user_tokens import UserTokensViewSet 
-from .views.permissions import PermissionsViewSet 
 from .views.perfiles import PerfilesViewSet 
-from .views.perfil_permissions import PerfilPermissionsViewSet 
 from .views.wasabi import WasabiFileHandler, WasabiFileUpload
 from .views.access import AccesosViewSet
 
@@ -28,16 +26,6 @@ urlpatterns = [
         'delete': 'destroy'
     }), name='user-tokens-detail'),
     
-    # URLs para Permissions
-    #path('permissions', PermissionsViewSet.as_view({
-        #'get': 'list',
-        #'post': 'create'
-    #}), name='permissions-list'),
-   # path('permissions/<int:pk>', PermissionsViewSet.as_view({
-        #'put': 'update',
-        #'delete': 'destroy'
-    #}), name='permissions-detail'),
-    
     # URLs para Perfiles
     path('perfiles', PerfilesViewSet.as_view({
         'get': 'list',
@@ -47,16 +35,6 @@ urlpatterns = [
         'put': 'update',
         #'delete': 'destroy'
     }), name='perfiles-detail'),
-    
-    # URLs para PerfilPermissions
-    #path('perfil-permissions', PerfilPermissionsViewSet.as_view({
-        #'get': 'list',
-        #'post': 'create'
-    #}), name='perfil-permissions-list'),
-    #path('perfil-permissions/<int:pk>', PerfilPermissionsViewSet.as_view({
-        #'put': 'update',
-        #'delete': 'destroy'
-    #}), name='perfil-permissions-detail'),
 
     # Obtener accesos por perfil
     path('access/perfil/<int:perfil_id>/', AccesosViewSet.as_view({

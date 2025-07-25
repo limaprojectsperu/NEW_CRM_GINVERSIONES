@@ -64,40 +64,10 @@ class Perfiles(models.Model):
     def __str__(self):
         return f"id: {self.co_perfil} - {self.no_perfil}"
     
-class Permissions(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=200)
-    description = models.CharField(max_length=255, null=True, blank=True)
-    state = models.IntegerField(default=1)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'permissions'
-        verbose_name = 'Permiso'
-        verbose_name_plural = 'Permisos'
-        
-    def __str__(self):
-        return self.name
-
-class PerfilPermissions(models.Model):
-    id = models.AutoField(primary_key=True)
-    perfil_id = models.IntegerField()
-    permission_id = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'perfil_permissions'
-        verbose_name = 'Perfil Permiso'
-        verbose_name_plural = 'Perfil Permisos'
-        
-    def __str__(self):
-        return f"Perfil {self.perfil_id} - Permission {self.permission_id}"
-    
 class Acceso(models.Model):
     acceso_id = models.CharField(max_length=8, primary_key=True, db_column='acceso_id')
     acceso = models.CharField(max_length=150, null=True, blank=True, db_column='acceso')
+    icono = models.CharField(max_length=50, null=True, blank=True, db_column='icono')
     estado = models.BooleanField(default=True) 
     
     class Meta:

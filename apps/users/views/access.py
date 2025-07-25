@@ -21,7 +21,8 @@ class AccesosViewSet(viewsets.ViewSet):
             for ap in accesos_perfil:
                 data.append({
                     'id': ap.acceso_id.acceso_id,
-                    'label': ap.acceso_id.acceso
+                    'label': ap.acceso_id.acceso,
+                    'icono': ap.acceso_id.icono
                 })
            
             return Response({
@@ -51,6 +52,7 @@ class AccesosViewSet(viewsets.ViewSet):
                 item = {
                     'id': acceso.acceso_id,
                     'label': acceso.acceso,
+                    'icono': acceso.icono,
                     'children': self.get_child_one(acceso.acceso_id[:2])
                 }
                 data.append(item)
@@ -93,7 +95,7 @@ class AccesosViewSet(viewsets.ViewSet):
            
             return Response({
                 'success': True,
-                'message': 'ok'
+                'message': 'Acceso guardado con éxito.'
             }, status=status.HTTP_200_OK)
            
         except Exception as e:
@@ -130,82 +132,73 @@ class AccesosViewSet(viewsets.ViewSet):
         principales_ids = Acceso.objects.filter(
             acceso_id__endswith='000000'
         ).values_list('acceso_id', flat=True)
-       
+        
         accesos = Acceso.objects.filter(
             acceso_id__startswith=prefix,
             acceso_id__endswith='0000',
-            estado=True  # Agregado filtro de estado
+            estado=True
         ).exclude(
             acceso_id__in=principales_ids
         ).order_by('acceso_id')
-       
+        
         result = []
         for acceso in accesos:
-            # Verificar si tiene hijos
+            # Verificar si tiene hijos (buscar accesos que empiecen con los primeros 4 dígitos)
             count_child = Acceso.objects.filter(
                 acceso_id__startswith=acceso.acceso_id[:4],
                 estado=True
             ).exclude(
-                acceso_id__endswith='0000'
+                acceso_id__endswith='0000'  # Excluir submódulos
+            ).exclude(
+                acceso_id=acceso.acceso_id  # Excluir el mismo acceso
             ).count()
-           
-            if count_child > 1:
+            
+            if count_child > 0:  # Cambiado de > 1 a > 0
                 item = {
                     'id': acceso.acceso_id,
                     'label': acceso.acceso,
+                    'icono': acceso.icono,
                     'children': self.get_child_two(acceso.acceso_id)
                 }
             else:
                 item = {
                     'id': acceso.acceso_id,
-                    'label': acceso.acceso
+                    'label': acceso.acceso,
+                    'icono': acceso.icono
                 }
             result.append(item)
-       
+        
         return result
 
     def get_child_two(self, acceso_id):
         """
         Obtiene los hijos de segundo nivel
         """
-        # Excluir los que terminan en 0000
+        # Excluir los que terminan en 0000 (submódulos principales)
         exclude_ids = Acceso.objects.filter(
             acceso_id__endswith='0000'
         ).values_list('acceso_id', flat=True)
-       
+        
+        # Buscar accesos que empiecen con los primeros 4 dígitos del acceso_id
+        # y que NO terminen en '0000' (para obtener las funcionalidades específicas)
         accesos = Acceso.objects.filter(
-            acceso_id__startswith=acceso_id[:4],
-            acceso_id__endswith='00',
-            estado=True  # Agregado filtro de estado
+            acceso_id__startswith=acceso_id[:4],  # Por ejemplo: '0402' para WhatsApp
+            estado=True
         ).exclude(
-            acceso_id__in=exclude_ids
+            acceso_id__in=exclude_ids  # Excluir submódulos principales
+        ).exclude(
+            acceso_id=acceso_id  # Excluir el mismo acceso padre
         ).order_by('acceso_id')
-       
+        
         result = []
         for acceso in accesos:
-            # Obtener hijos del tercer nivel
-            children = Acceso.objects.filter(
-                acceso_id__startswith=acceso.acceso_id[:6],
-                estado=True
-            ).exclude(
-                acceso_id__endswith='00'
-            ).order_by('acceso_id')
-           
-            count_child = children.count()
-           
-            if count_child > 1:
-                item = {
-                    'id': acceso.acceso_id,
-                    'label': acceso.acceso,
-                    'children': self.get_child_three(children)
-                }
-            else:
-                item = {
-                    'id': acceso.acceso_id,
-                    'label': acceso.acceso
-                }
+            item = {
+                'id': acceso.acceso_id,
+                'label': acceso.acceso,
+                'icono': acceso.icono
+            }
             result.append(item)
-       
+        
         return result
 
     def get_child_three(self, children_queryset):
@@ -216,7 +209,8 @@ class AccesosViewSet(viewsets.ViewSet):
         for acceso in children_queryset:
             item = {
                 'id': acceso.acceso_id,
-                'label': acceso.acceso
+                'label': acceso.acceso,
+                'icono': acceso.icono
             }
             result.append(item)
        
