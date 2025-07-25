@@ -28,25 +28,27 @@ def respond_automatically_task(self):
         raise self.retry(exc=e, countdown=60, max_retries=3)
 
 @shared_task(bind=True)
-def import_data_task(self):
-    """Ejecuta el comando de importación de datos"""
+def send_scheduled_templates_task(self):
+    """Envía plantillas programadas cada minuto con ventana de tolerancia"""
     try:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        logger.info(f"[{timestamp}] Iniciando tarea de importación de datos...")
+        logger.info(f"[{timestamp}] Iniciando tarea de envío de plantillas programadas...")
         
-        # Ejecutar el comando Django
-        result = call_command('import_data_task')
+        # Ejecutar el comando Django existente
+        call_command('next_template')
         
-        success_msg = f"[{timestamp}] Tarea de importación completada: {result}"
+        success_msg = f"[{timestamp}] Tarea de envío de plantillas completada"
         logger.info(success_msg)
         print(success_msg)
         
         return success_msg
+        
     except Exception as e:
-        error_msg = f"Error ejecutando tarea de importación: {str(e)}"
+        error_msg = f"Error ejecutando tarea de envío de plantillas: {str(e)}"
         logger.error(error_msg)
         print(f"ERROR: {error_msg}")
-        raise self.retry(exc=e, countdown=300, max_retries=2)  # Reintentar en 5 minutos
+        # Reintentar cada 30 segundos, máximo 2 intentos para no saturar
+        raise self.retry(exc=e, countdown=30, max_retries=2)
 
 @shared_task
 def test_celery_task():

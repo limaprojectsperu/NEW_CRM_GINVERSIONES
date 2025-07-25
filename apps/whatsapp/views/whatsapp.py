@@ -213,7 +213,7 @@ class WhatsappUpdateNextTemplate(APIView):
             fecha_proxima_plantilla=request.data.get('fecha_proxima_plantilla'),
             user_id_proxima_plantilla=request.data.get('user_id_proxima_plantilla'),
             )
-        return Response({'message': 'Plantilla programada para el envió. '})
+        return Response({'message': 'Plantilla programada con éxito.'})
 
 class WhatsappDestroy(APIView):
     """ POST /api/whatsapp/delete/{id}/ """

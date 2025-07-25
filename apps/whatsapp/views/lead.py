@@ -265,7 +265,7 @@ class LeadViewSet(viewsets.ViewSet):
             "origen": origen,
             "message_24_hours": False,
             "template_params_1": lead.nombre_lead,
-            "template_params_2": user if user.name else setting.Nombre,
+            "template_params_2": user.name if user and user.name else setting.Nombre,
         }
         
         factory = RequestFactory()
