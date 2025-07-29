@@ -12,9 +12,13 @@ urlpatterns = [
         'post': 'create'
     }), name='users-list'),
     path('users/<int:pk>', UsersViewSet.as_view({
+        'get': 'show',
         'put': 'update',
         #'delete': 'destroy'
     }), name='users-detail'),
+    path('user/update-openai/<int:pk>', UsersViewSet.as_view({
+        'post': 'updateOpenai',
+    })),
     
     # URLs para UserTokens
     path('user-tokens', UserTokensViewSet.as_view({

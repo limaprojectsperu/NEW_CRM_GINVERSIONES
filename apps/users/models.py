@@ -23,6 +23,9 @@ class Users(models.Model):
     co_usuario_modifica = models.IntegerField(null=True, blank=True)
     fe_usuario_modifica = models.DateTimeField(null=True, blank=True)
     in_estado = models.IntegerField(default=1)
+    openai = models.BooleanField(default=False) 
+    responder_automaticamente = models.BooleanField(default=False) 
+    responder_automaticamente_minutos = models.IntegerField(default=5)
 
     class Meta:
         db_table = 'users'

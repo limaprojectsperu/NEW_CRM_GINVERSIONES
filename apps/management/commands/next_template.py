@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 )
                 
                 # Enviar la plantilla
-                response = self.send_message_whatsapp(setting, chat, 'Plantilla', origen=1)
+                response = self.send_message_whatsapp(setting, chat, 'plantilla', origen=1)
                 
                 if response and response.status_code == 200:
                     total_sent += 1
@@ -55,9 +55,13 @@ class Command(BaseCommand):
                     # IMPORTANTE: Limpiar la fecha programada después del envío exitoso
                     chat.fecha_proxima_plantilla = None
                     chat.user_id_proxima_plantilla = None
+                    chat.template_name = None
+                    chat.template_params = None
                     chat.save(update_fields=[
                         'fecha_proxima_plantilla', 
-                        'user_id_proxima_plantilla'
+                        'user_id_proxima_plantilla',
+                        'template_name',
+                        'template_params'
                     ])
                     
                     self.stdout.write(
@@ -118,8 +122,8 @@ class Command(BaseCommand):
                 "Hora": Hora,
                 "origen": origen,
                 "message_24_hours": True,
-                "template_params_1": chat.Nombre,
-                "template_params_2": user.name if user and user.name else setting.Nombre,
+                "template_params": chat.template_params.split('*'),
+                "template_name": chat.template_name,
             }
             
             factory = RequestFactory()
@@ -132,7 +136,6 @@ class Command(BaseCommand):
             drf_request = Request(django_request, parsers=[JSONParser()])
             view = WhatsappSendAPIView()
             response = view.post(drf_request)
-            
             return response
             
         except Exception as e:

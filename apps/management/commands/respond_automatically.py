@@ -11,7 +11,8 @@ from apps.openai.openai_chatbot import ChatbotService
 from apps.whatsapp.views.whatsapp_app import WhatsappSendAPIView
 from apps.messenger.views.messenger_app import MessengerSendView
 from apps.messenger.models import Messenger, MessengerMensaje, MessengerConfiguracion
-from apps.whatsapp.models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
+from apps.whatsapp.models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser
+from apps.users.models import Users
 
 chatbot = ChatbotService()
 
@@ -20,7 +21,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Iniciando proceso de respuesta automática...'))
-        
+
+        # Procesar mensajes de WhatsApp filtrados por usuario
+        self.process_whatsapp_messages_by_user()
+
         # Procesar mensajes de WhatsApp
         self.process_whatsapp_messages()
         
@@ -83,6 +87,98 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'Error procesando WhatsApp: {str(e)}')
+            )
+
+    def process_whatsapp_messages_by_user(self):
+        """Procesa mensajes de WhatsApp filtrando primero por usuarios con respuesta automática habilitada"""
+        try:
+            # 1. Primero buscar usuarios con respuesta automática habilitada
+            usuarios_auto_respuesta = Users.objects.filter(
+                responder_automaticamente=True,
+                in_estado=1  # Solo usuarios activos
+            )
+
+            if not usuarios_auto_respuesta.exists():
+                self.stdout.write('No hay usuarios con respuesta automática habilitada')
+                return
+
+            for usuario in usuarios_auto_respuesta:
+                self.stdout.write(f'Procesando usuario: {usuario.name} (ID: {usuario.co_usuario})')
+                
+                # 2. Obtener los chats asignados a este usuario específico
+                chats_usuario = WhatsapChatUser.objects.filter(
+                    user_id=usuario.co_usuario
+                ).values_list('IDChat', flat=True)
+
+                if not chats_usuario:
+                    self.stdout.write(f'Usuario {usuario.name} no tiene chats asignados')
+                    continue
+
+                # 3. Calcular tiempos para respuesta automática
+                tiempo_ahora = timezone.now()
+                minutos_respuesta = usuario.responder_automaticamente_minutos
+                tiempo_minimo_antiguedad = tiempo_ahora - timedelta(minutes=minutos_respuesta)
+                tiempo_maximo_antiguedad = tiempo_ahora - timedelta(minutes=30)
+
+                # 4. Buscar mensajes candidatos de los chats asignados al usuario
+                mensajes_candidatos = WhatsappMensajes.objects.filter(
+                    IDChat__in=Whatsapp.objects.filter(
+                        IDChat__in=chats_usuario,
+                        Estado=1  # Solo chats activos
+                    ).values_list('IDChat', flat=True),
+                    origen=2,  # Mensaje del cliente
+                    created_at__lte=tiempo_minimo_antiguedad,
+                    created_at__gt=tiempo_maximo_antiguedad
+                ).order_by('IDChat', '-created_at')
+
+                if not mensajes_candidatos.exists():
+                    self.stdout.write(f'No hay mensajes candidatos para el usuario {usuario.name}')
+                    continue
+
+                # 5. Agrupar por chat para verificar si es el último mensaje
+                chats_procesados = set()
+
+                for mensaje in mensajes_candidatos:
+                    if mensaje.IDChat in chats_procesados:
+                        continue
+
+                    # 6. Verificar si es el último mensaje del chat
+                    ultimo_mensaje = WhatsappMensajes.objects.filter(
+                        IDChat=mensaje.IDChat
+                    ).order_by('-created_at').first()
+
+                    if ultimo_mensaje and ultimo_mensaje.IDChatMensaje == mensaje.IDChatMensaje:
+                        # Es el último mensaje y es del cliente, generar respuesta
+                        try:
+                            chat = Whatsapp.objects.get(IDChat=mensaje.IDChat)
+                            
+                            # Obtener la configuración de WhatsApp asociada al chat
+                            config = WhatsappConfiguracion.objects.get(
+                                IDRedSocial=chat.IDRedSocial,
+                                Estado=1
+                            )
+
+                            self.stdout.write(
+                                f'Respondiendo automáticamente por usuario {usuario.name} '
+                                f'a WhatsApp chat {chat.IDChat} - {chat.Nombre}'
+                            )
+
+                            # Generar respuesta usando la configuración del chat
+                            self.open_ai_response_whatsapp(config, chat)
+                            chats_procesados.add(mensaje.IDChat)
+
+                        except Whatsapp.DoesNotExist:
+                            self.stdout.write(
+                                self.style.ERROR(f'Chat {mensaje.IDChat} no encontrado')
+                            )
+                        except WhatsappConfiguracion.DoesNotExist:
+                            self.stdout.write(
+                                self.style.ERROR(f'Configuración WhatsApp no encontrada para chat {mensaje.IDChat}')
+                            )
+
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'Error procesando mensajes por usuario: {str(e)}')
             )
 
     def process_messenger_messages(self):

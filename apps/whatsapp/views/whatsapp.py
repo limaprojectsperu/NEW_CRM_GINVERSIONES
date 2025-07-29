@@ -210,6 +210,8 @@ class WhatsappUpdateNextTemplate(APIView):
         Whatsapp.objects.filter(IDChat=id).update(
             fecha_proxima_plantilla=request.data.get('fecha_proxima_plantilla'),
             user_id_proxima_plantilla=request.data.get('user_id_proxima_plantilla'),
+            template_name=request.data.get('template_name'),
+            template_params=request.data.get('template_params'),
             )
         return Response({'message': 'Plantilla programada con éxito.'})
 

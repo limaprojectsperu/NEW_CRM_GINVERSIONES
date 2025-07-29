@@ -14,6 +14,12 @@ class UsersViewSet(viewsets.ViewSet):
         users = Users.objects.filter(in_estado=1).order_by('co_usuario')
         serializer = UsersSerializer(users, many=True)
         return Response({'data': serializer.data})
+    
+    def show(self, request, pk=None):
+        """GET /api/users/ - usuario"""
+        user = Users.objects.filter(co_usuario=pk).first()
+        serializer = UsersSerializer(user)
+        return Response({'data': serializer.data})
 
     def create(self, request):
         """POST /api/users/ - Crear o actualizar usuario según se envíe co_usuario"""
@@ -67,6 +73,14 @@ class UsersViewSet(viewsets.ViewSet):
             serializer.save()
             return Response({'data': serializer.data, 'message': 'Usuario actualizado con éxito.'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def updateOpenai(self, request, pk=None):
+        """PUT /api/users/{id}/ - Actualizar openai"""
+        user = get_object_or_404(Users, co_usuario=pk)
+        user.openai = request.data.get('openai')
+        user.save()
+        serializer = UsersSerializer(user)
+        return Response({"data": serializer.data, "message": "Usuario actualizado con éxito."})
     
     def destroy(self, request, pk=None):
         """DELETE /api/users/{id}/ - Eliminar usuario (cambiar estado)"""

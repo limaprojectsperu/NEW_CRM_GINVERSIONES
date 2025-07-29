@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.conf import settings
-from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes
+from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
@@ -20,6 +20,9 @@ from ..views.whatsapp_app import WhatsappSendAPIView
 from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import save_file_to_wasabi
+from apps.users.models import Users
+from apps.openai.analyze_chat_funct import analyze_chat_conversation
+from apps.redes_sociales.models import Marca
 
 chatbot = ChatbotService()
 
@@ -168,6 +171,9 @@ class WhatsappWebhookAPIView(APIView):
             'IDChat': chat.IDChat, 
             'mensaje': lastMessage
             })
+        
+        #result = self.analyze_chat_new_lead(setting, chat)
+        #print(result)
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
         """
@@ -370,7 +376,13 @@ class WhatsappWebhookAPIView(APIView):
             if template:
                 self.send_message(setting, chat, template.mensaje)
 
-        if setting.openai and chat.openai:
+        chat_user = WhatsapChatUser.objects.filter(IDChat=chat.IDChat).first()
+        if(chat_user):
+            user = Users.objects.filter(co_usuario=chat_user.user_id).first()
+            if user and user.openai:
+                self.open_ai_response(setting, chat)
+
+        elif setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
 
     def handle_button_response(self, setting, chat, button_id, message_content):
@@ -401,6 +413,120 @@ class WhatsappWebhookAPIView(APIView):
 
         chat.respuesta_generada_openai = True
         chat.save()
+    
+    def analyze_chat_new_lead(self, setting, chat):
+        """
+        Analiza el chat de un nuevo lead y envía los datos extraídos a la API externa
+        """
+        try:
+            # 1. Obtener y formatear mensajes del chat
+            msgs = WhatsappMensajes.objects.filter(
+                IDChat=chat.IDChat
+            ).exclude(
+                Telefono=setting.Telefono
+            ).order_by('IDChatMensaje')
+            
+            chat_history = [
+                {"content": msg.Mensaje, "role": "user"} 
+                for msg in msgs if msg.Mensaje
+            ]
+            
+            # 2. Verificar cantidad mínima de mensajes
+            if len(chat_history) < setting.envio_lead_n_chat:
+                return {'success': False, 'reason': 'insufficient_messages'}
+            
+            # 3. Analizar chat con IA
+            #print(f"Analizando chat {chat.IDChat} con {len(chat_history)} mensajes")
+            result = analyze_chat_conversation(chat_history)
+            
+            if not result['success']:
+                return {'success': False, 'reason': 'analysis_failed', 'error': result.get('error')}
+            
+            # 4. Validar datos mínimos requeridos
+            result_ia = result['data']
+            if not all([result_ia.get('tiene_propiedad'), result_ia.get('monto'), result_ia.get('garantia')]):
+                return {'success': False, 'reason': 'missing_required_fields'}
+            
+            # 5. Obtener tipo de producto (inline)
+            try:
+                response = requests.get(f"{settings.API_GI}tipos_producto", timeout=10)
+                response.raise_for_status()
+                product_types = response.json().get('data', [])
+                
+                marca = Marca.objects.filter(id=setting.marca_id).first()
+                if not marca:
+                    return {'success': False, 'reason': 'marca_not_found'}
+                
+                product_type = next(
+                    (item for item in product_types if item.get('producto', '').lower() == marca.nombre.lower()), 
+                    None
+                )
+                if not product_type:
+                    return {'success': False, 'reason': 'product_type_not_found'}
+                    
+            except requests.RequestException as e:
+                return {'success': False, 'reason': 'product_type_api_error', 'error': {str(e)}}
+            
+            # 6. Obtener origen (inline)
+            try:
+                params = {'marca_id': product_type['id'], 'plataforma_id': 1}
+                response = requests.get(f"{settings.API_GI}origenes", params=params, timeout=10)
+                response.raise_for_status()
+                
+                origen_id = response.json().get('data', {}).get('id')
+                if not origen_id:
+                    return {'success': False, 'reason': 'origen_not_found'}
+                    
+            except requests.RequestException as e:
+                return {'success': False, 'reason': 'origen_api_error', 'error': {str(e)}}
+            
+            # 7. Preparar y enviar payload (inline)
+            # Limpiar teléfono
+            telefono_limpio = chat.Telefono
+            if telefono_limpio and telefono_limpio.startswith('51') and len(telefono_limpio) > 9:
+                telefono_limpio = telefono_limpio[2:]
+            
+            payload = {
+                'nombres': result_ia.get('nombres') or chat.Nombre or '',
+                'apellidos': result_ia.get('apellidos') or '',
+                'numero': result_ia.get('dni') or '',
+                'celular': telefono_limpio or '',
+                'monto': result_ia.get('monto') or 0,
+                'correo': result_ia.get('correo') or '',
+                'has_property': result_ia.get('tiene_propiedad', False),
+                'tipo_garantia': result_ia.get('garantia') or '',
+                'tipo_producto': product_type['id'],
+                'origen': origen_id
+            }
+            #print(payload)
+            # 8. Enviar a API externa
+            try:
+                headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+                response = requests.post(
+                    f"{settings.API_GI}solicitantes",
+                    json=payload,
+                    headers=headers,
+                    timeout=30
+                )
+                response.raise_for_status()
+                
+                response_data = response.json()
+                lead_id = response_data.get('id') or response_data.get('data', {}).get('id')
+                
+                return {
+                    'success': True,
+                    'lead_id': lead_id,
+                    'extracted_data': result_ia
+                }
+                
+            except requests.exceptions.Timeout:
+                return {'success': False, 'reason': 'api_timeout'}
+            except requests.RequestException as e:
+                return {'success': False, 'reason': 'api_send_failed', 'error': str(e)}
+        
+        except Exception as e:
+            return {'success': False, 'reason': 'unexpected_error', 'error': str(e)}
+        
 
     def send_message(self, setting, chat, mensaje, origen=1):
         """

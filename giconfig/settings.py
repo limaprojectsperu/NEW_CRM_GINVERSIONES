@@ -18,6 +18,9 @@ from corsheaders.defaults import default_headers
 # Cargar variables del archivo .env
 load_dotenv()
 
+#api GI
+API_GI = 'https://sistema.grupoimagensac.com.pe/api/'
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'America/Lima' 

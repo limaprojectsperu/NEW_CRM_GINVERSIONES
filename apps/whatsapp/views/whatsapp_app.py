@@ -44,7 +44,7 @@ class WhatsappSendAPIView(APIView):
         result  = None
         media   = None
         msjPlantilla = None
-
+        
         # 3) Buscar chat reciente para plantilla
         chat = Whatsapp.objects.filter(
             IDRedSocial=data.get('IDRedSocial'),
@@ -55,12 +55,21 @@ class WhatsappSendAPIView(APIView):
         # 4) Si no hay chat reciente o mensaje == "plantilla", enviamos template
         if not chat or text.lower() == 'plantilla':
             # NUEVA FUNCIONALIDAD: Soporte para plantillas con variables e imágenes
-            template_params = [data.get('template_params_1', 'Emprendedor'), data.get('template_params_2', setting.Nombre)]
             media_id = data.get('media_id')
+            template_params = None
+            template_name = None
+            
+            if data.get('template_params'):
+                template_params = data.get('template_params')
+            else:
+                template_params = [data.get('template_params_1', 'Emprendedor'), data.get('template_params_2', setting.Nombre)]
+                
+            if data.get('template_name'):
+                template_name = data.get('template_name')
             
             # Obtener plantilla desde BD
             template_obj = WhatsappMetaPlantillas.objects.filter(
-                nombre=self.template
+                nombre=template_name if template_name else self.template
             ).first()
 
             media_type = template_obj.tipo
@@ -77,7 +86,7 @@ class WhatsappSendAPIView(APIView):
                         'status': 500
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            payload = self._build_template_payload(phone, template_params, media_id, media_type)
+            payload = self._build_template_payload(phone, template_params, media_id, media_type, template_obj.nombre)
             result  = self._send_msg_api(payload)
             
             if result['status_code'] == 200:
@@ -416,10 +425,12 @@ class WhatsappSendAPIView(APIView):
         
         return content_types.get(extension, 'application/octet-stream')
 
-    def _build_template_payload(self, to_phone, template_params=None, media_id=None, media_type='image'):
+    def _build_template_payload(self, to_phone, template_params=None, media_id=None, media_type='image', template_name=None):
         """Construye payload para plantilla con soporte para variables e imágenes"""
+        template_name_to_use = template_name if template_name else self.template
+        
         template = WhatsappMetaPlantillas.objects.filter(
-            nombre=self.template
+            nombre=template_name_to_use
         ).first()
 
         payload = {

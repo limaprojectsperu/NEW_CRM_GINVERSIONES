@@ -20,9 +20,10 @@ class WhatsappConfiguracion(models.Model):
     openai      = models.BooleanField(default=False) 
     openai_analizador = models.BooleanField(default=True) 
     responder_automaticamente = models.BooleanField(default=False) 
-    responder_automaticamente_minutos = models.IntegerField(default=5, db_column='responder_automaticamente_minutos')
+    responder_automaticamente_minutos = models.IntegerField(default=5)
     enviar_quien_escribio = models.BooleanField(default=False) 
     contactar_leads = models.BooleanField(default=False) 
+    envio_lead_n_chat = models.IntegerField(default=3)
 
     class Meta:
         db_table = 'whatsapp_configuracion'
@@ -59,6 +60,8 @@ class Whatsapp(models.Model):
     user_id_agenda       = models.IntegerField(null=True, blank=True, db_column='user_id_agenda')
     fecha_proxima_plantilla = models.DateTimeField(null=True, blank=True, db_column='fecha_proxima_plantilla')
     user_id_proxima_plantilla = models.IntegerField(null=True, blank=True, db_column='user_id_proxima_plantilla')
+    template_name        = models.CharField(max_length=150, null=True, blank=True, db_column='template_name')
+    template_params      = models.CharField(max_length=400, null=True, blank=True, db_column='template_params')
     Estado               = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
     openai               = models.BooleanField(default=True) 
     respuesta_generada_openai = models.BooleanField(default=False)
@@ -161,6 +164,7 @@ class WhatsappMetaPlantillas(models.Model):
     variables   = models.IntegerField(null=True, blank=True, db_column='variables')
     nombre_variables = models.CharField(max_length=255, null=True, blank=True, db_column='nombre_variables')
     variables_obligatorio = models.CharField(max_length=50, null=True, blank=True, db_column='variables_obligatorio')
+    cliente_index = models.IntegerField(null=True, blank=True, db_column='cliente_index')
     usuario_index = models.IntegerField(null=True, blank=True, db_column='usuario_index')
     tipo        = models.CharField(max_length=40, null=True, blank=True, db_column='tipo')
     estado      = models.IntegerField(default=1, db_column='estado')
