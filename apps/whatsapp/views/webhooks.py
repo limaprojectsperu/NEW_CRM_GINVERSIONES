@@ -23,6 +23,8 @@ from apps.users.views.wasabi import save_file_to_wasabi
 from apps.users.models import Users
 from apps.openai.analyze_chat_funct import analyze_chat_simple
 from apps.redes_sociales.models import Marca
+from ..serializers import LeadSerializer
+from django.shortcuts import get_object_or_404
 
 chatbot = ChatbotService()
 
@@ -172,8 +174,7 @@ class WhatsappWebhookAPIView(APIView):
             'mensaje': lastMessage
             })
         
-        #result = self.analyze_chat_new_lead(setting, chat)
-        #print(result)
+        self.analyze_chat_new_lead(setting, chat)
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
         """
@@ -405,7 +406,7 @@ class WhatsappWebhookAPIView(APIView):
         """
         ultimos_mensajes = list(WhatsappMensajes.objects.filter(
             IDChat=chat.IDChat
-        ).order_by('-IDChatMensaje')[:4])
+        ).order_by('-IDChatMensaje')[:10])
         ultimos_mensajes.reverse()
         
         messages = [{"role": "assistant" if entry.Telefono == setting.Telefono else "user", "content": entry.Mensaje} for entry in ultimos_mensajes]
@@ -473,14 +474,17 @@ class WhatsappWebhookAPIView(APIView):
             # Validar que la marca existe
             if not marca:
                 return {'success': False, 'reason': 'marca_not_found'}
+            if not lead:
+                return {'success': False, 'reason': 'lead_not_found'}
 
             payload = {
                 'codigo': lead.codigo,
-                'marca': marca.nombre,
+                'marca': marca.nombre.upper(),
                 'es_efectivo': True
             }
             
             # 6. Enviar a API externa
+            response = None  # Inicializar variable response
             try:
                 headers = {
                     'Content-Type': 'application/json', 
@@ -496,13 +500,57 @@ class WhatsappWebhookAPIView(APIView):
             
                 response_data = response.json()
                 data = response_data.get('data')
-            
-                return {
-                    'success': True,
-                    'data': data,
-                    'extracted_data': result_ia,
-                    'payload_sent': payload
-                }
+
+                # Verificar que data no sea None
+                if not data:
+                    return {'success': False, 'reason': 'api_response_empty_data'}
+
+                # Actualizar el lead
+                try:
+                    qs = get_object_or_404(Lead, id=lead.id)
+                    serializer = LeadSerializer(qs, data=data, partial=True)
+                    if serializer.is_valid():
+                        serializer.save()
+                    else:
+                        return {
+                            'success': False, 
+                            'reason': 'serializer_validation_failed',
+                            'errors': serializer.errors
+                        }
+
+                    # Actualizar WhatsapChatUser
+                    WhatsapChatUser.objects.filter(IDChat=chat.IDChat).update(
+                        user_id=serializer.data.get('usuario_asignado')
+                    )
+                    
+                    # Push notification
+                    try:
+                        firebase_service = FirebaseServiceV1()
+                        tokens = get_user_tokens_by_whatsapp(setting.IDRedSocial, chat.IDChat)
+                        if len(tokens) > 0:
+                            firebase_service.send_to_multiple_devices(
+                                tokens=tokens,
+                                title="Nuevo lead recibido en WhatsApp",
+                                body=self.simple_message(serializer.data),
+                                data={'type': 'router', 'route_name': 'WhatsappPage'}
+                            )
+                    except Exception as firebase_error:
+                        # Log el error pero no fallar el proceso
+                        print(f"Error enviando notificación Firebase: {firebase_error}")
+                    
+                    return {
+                        'success': True,
+                        'data': data,
+                        'extracted_data': result_ia,
+                        'payload_sent': payload
+                    }
+                    
+                except Exception as serializer_error:
+                    return {
+                        'success': False, 
+                        'reason': 'lead_update_failed',
+                        'error': str(serializer_error)
+                    }
             
             except requests.exceptions.Timeout:
                 return {'success': False, 'reason': 'api_timeout'}
@@ -511,21 +559,40 @@ class WhatsappWebhookAPIView(APIView):
                     'success': False, 
                     'reason': 'api_http_error', 
                     'error': str(e),
-                    'status_code': response.status_code if 'response' in locals() else None
+                    'status_code': response.status_code if response else None
                 }
             except requests.RequestException as e:
                 return {'success': False, 'reason': 'api_send_failed', 'error': str(e)}
             except ValueError as e:  # Para errores de JSON parsing
                 return {'success': False, 'reason': 'api_response_invalid', 'error': str(e)}
-        
+                
         except Exception as e:
-            # Log del error para debugging
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error inesperado en analyze_chat_new_lead: {str(e)}", exc_info=True)
-            
-            return {'success': False, 'reason': 'unexpected_error', 'error': str(e)}
+            # Capturar cualquier error no manejado
+            return {
+                'success': False, 
+                'reason': 'unexpected_error',
+                'error': str(e)
+            }
         
+    
+    def simple_message(self, lead):
+        """
+        Genera mensaje simple para notificaciones de nuevo lead
+        """
+        try:
+            marca = getattr(lead, 'marca', 'N/A')
+            nombre = getattr(lead, 'nombre_lead', 'N/A')
+            monto = getattr(lead, 'monto_solicitado', 0)
+            celular = getattr(lead, 'celular', 'N/A')
+            ocurrencia = getattr(lead, 'ocurrencia', 'N/A')
+            
+            return (
+                f"Nueva Lead de {marca}: Nombre: {nombre}; "
+                f"Monto Solicitado: S/. {monto}; "
+                f"Celular: {celular}; Ocurrencia: {ocurrencia}."
+            )
+        except Exception as e:
+            return "Nueva Lead recibida"
 
     def send_message(self, setting, chat, mensaje, origen=1):
         """

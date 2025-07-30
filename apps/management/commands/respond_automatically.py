@@ -241,7 +241,7 @@ class Command(BaseCommand):
         try:
             ultimos_mensajes = list(WhatsappMensajes.objects.filter(
                 IDChat=chat.IDChat
-            ).order_by('-IDChatMensaje')[:4])
+            ).order_by('-IDChatMensaje')[:10])
             ultimos_mensajes.reverse()
             
             messages = [

@@ -42,6 +42,22 @@ class WhatsapChatUserViewSet(viewsets.ViewSet):
         serializer = WhatsapChatUserSerializer(qs, many=True)
         return Response({'data': serializer.data})
     
+    def updateReassignUser(self, request, pk=None):
+        """PUT /api/whatsapp-chat-user/{user_id}/ """
+        user_id = request.data.get('user_id')
+        
+        obj, created = WhatsapChatUser.objects.update_or_create(
+            IDChat=pk,
+            defaults={'user_id': user_id}
+        )
+        
+        if created:
+            message = 'Usuario asignado al chat con éxito.'
+        else:
+            message = 'Usuario reasignado con éxito.'
+        
+        return Response({'message': message})
+    
     def update(self, request, pk=None):
         """PUT /api/whatsapp-chat-user/{user_id}/ - Actualizar configuraciones de usuario"""
         try:

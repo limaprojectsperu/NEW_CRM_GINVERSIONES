@@ -16,12 +16,19 @@ from ..views.whatsapp_app import WhatsappSendAPIView
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
 from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
 from apps.users.models import Users
+from django.shortcuts import get_object_or_404
 
 class LeadViewSet(viewsets.ViewSet):
     """
     API endpoint for managing Lead records with WhatsApp integration.
     """
 
+    """GET """
+    def show(self, request, pk):
+        qs = get_object_or_404(Lead, id=pk)
+        serializer = LeadSerializer(qs)
+        return Response({'data': serializer.data})
+    
     def create(self, request):
         """
         POST /api/leads/

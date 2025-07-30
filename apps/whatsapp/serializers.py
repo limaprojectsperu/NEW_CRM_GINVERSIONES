@@ -23,7 +23,7 @@ class WhatsappSerializer(serializers.ModelSerializer):
         fields = [
             'IDChat', 'IDRedSocial', 'Nombre', 'Telefono',
             'FechaUltimaPlantilla', 'updated_at', 'Avatar',
-            'IDEL', 'nombre_estado',
+            'IDEL', 'nombre_estado', 'lead_id',
             'IDSubEstadoLead', 'nombre_subestado',
             'fecha_agenda', 'user_id_agenda',
             'fecha_proxima_plantilla', 'user_id_proxima_plantilla', 'template_name', 'template_params',
@@ -68,7 +68,7 @@ class WhatsappAgendaSerializer(serializers.ModelSerializer):
         fields = [
             'IDChat', 'IDRedSocial', 'Nombre', 'Telefono',
             'FechaUltimaPlantilla', 'updated_at', 'Avatar',
-            'IDEL', 'nombre_estado',
+            'IDEL', 'nombre_estado', 'lead_id',
             'IDSubEstadoLead', 'nombre_subestado',
             'fecha_agenda', 'user_id_agenda', 'usuario_agenda',
             'fecha_proxima_plantilla', 'user_id_proxima_plantilla', 'template_name', 'template_params',
@@ -189,8 +189,6 @@ class WhatsappPlantillaResumenSerializer(serializers.ModelSerializer):
             return None
         
 class LeadSerializer(serializers.ModelSerializer):
-    usuario_asignado = serializers.IntegerField(required=True)
-
     class Meta:
         model = Lead
         fields = '__all__'

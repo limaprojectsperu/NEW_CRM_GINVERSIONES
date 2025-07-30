@@ -92,6 +92,7 @@ urlpatterns = [
         'get': 'show',
         'put': 'update'
     })),
+    path('whatsapp-chat-user/reassign/<int:pk>', WhatsapChatUserViewSet.as_view({'put': 'updateReassignUser'})),
 
     # API para WhatsappProfileAccepts
     path('whatsapp-profile-accepts/<int:pk>', WhatsappProfileAcceptsViewSet.as_view({
@@ -104,5 +105,8 @@ urlpatterns = [
     path('whatsapp/lead', LeadViewSet.as_view({
         'post': 'create'
     }), name='whatsapp-lead'),
+    path('whatsapp/lead/<int:pk>', LeadViewSet.as_view({
+        'get': 'show'
+    })),
 
 ]
