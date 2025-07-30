@@ -56,7 +56,7 @@ class Whatsapp(models.Model):
     IDEL                 = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID lead estado')
     IDSubEstadoLead      = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead')
     nuevos_mensajes      = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
-    codigo_solicitud     = models.CharField(max_length=50, db_column='codigo_solicitud', null=True, blank=True)
+    lead_id              = models.IntegerField(null=True, blank=True, db_column='lead_id')
     fecha_agenda         = models.DateTimeField(null=True, blank=True, db_column='fecha_agenda')
     user_id_agenda       = models.IntegerField(null=True, blank=True, db_column='user_id_agenda')
     fecha_proxima_plantilla = models.DateTimeField(null=True, blank=True, db_column='fecha_proxima_plantilla')
@@ -198,9 +198,10 @@ class WhatsappPlantillaResumen(models.Model):
     
 class Lead(models.Model):
     id = models.AutoField(primary_key=True, db_column='id')
+    codigo = models.CharField(max_length=100, db_column='codigo', null=True, blank=True)
     fecha_registro = models.DateTimeField(db_column='fecha_registro', null=True, blank=True)
     fecha_asignacion = models.DateTimeField(db_column='fecha_asignacion', null=True, blank=True)
-    codigo_solicitud = models.CharField(max_length=50, db_column='codigo_solicitud', null=True, blank=True)
+    codigo_solicitud = models.CharField(max_length=100, db_column='codigo_solicitud', null=True, blank=True)
     medio_captacion = models.CharField(max_length=200, db_column='medio_captacion', null=True, blank=True)
     marca = models.CharField(max_length=100, db_column='marca', null=True, blank=True)
     nombre_lead = models.CharField(max_length=255, db_column='nombre_lead', null=True, blank=True)

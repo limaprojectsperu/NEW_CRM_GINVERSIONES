@@ -24,7 +24,7 @@ class ChatAnalyzerService:
         chat_history: Union[List[Dict[str, str]], str],
         model: str = "gpt-3.5-turbo",
         temperature: float = 0.1,
-        max_tokens: int = 150
+        max_tokens: int = 200
     ) -> Dict[str, Any]:
         """
         Analizar historial de chat y extraer información específica: monto, tipo de propiedad y si tiene propiedad

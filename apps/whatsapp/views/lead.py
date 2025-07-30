@@ -183,7 +183,7 @@ class LeadViewSet(viewsets.ViewSet):
             if existing_chat_user:
                 # El chat ya existe, obtener el chat
                 whatsapp_chat = Whatsapp.objects.get(IDChat=existing_chat_user.IDChat)
-                whatsapp_chat.codigo_solicitud = lead.codigo_solicitud
+                whatsapp_chat.lead_id = lead.id
                 whatsapp_chat.save()
                 chat_created = False
             else:
@@ -197,7 +197,7 @@ class LeadViewSet(viewsets.ViewSet):
                     IDEL=find_state_id(2, 'PENDIENTE DE LLAMADA'),
                     nuevos_mensajes=1,
                     Estado=1,
-                    codigo_solicitud=lead.codigo_solicitud
+                    lead_id=lead.id
                 )
                 chat_created = True
                 
@@ -309,7 +309,7 @@ class LeadViewSet(viewsets.ViewSet):
     💰 Monto Solicitado: S/. {lead.monto_solicitado}
 
     📋 DETALLES:
-    • Código: {lead.codigo_solicitud}
+    • Código solicitud: {lead.codigo_solicitud}
     • Medio de Captación: 
     {medio_parts[0]}""" 
 

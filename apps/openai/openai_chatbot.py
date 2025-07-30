@@ -26,14 +26,13 @@ class ChatbotService:
         # 2. Construimos el array de mensajes
         messages = [{"role": "system", "content": prompt}]
         messages.extend(conversation_history) 
-        #messages.append({"role": "user", "content": user_message})
         
         # 3. Llamamos a la API
         try:
             resp = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
-                max_tokens=250,
+                max_tokens=300,
                 temperature=0.7
             )
             return resp.choices[0].message.content.strip()

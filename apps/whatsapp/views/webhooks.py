@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.conf import settings
-from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser
+from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser, Lead
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
@@ -468,13 +468,14 @@ class WhatsappWebhookAPIView(APIView):
         
             # 5. Preparar y enviar payload
             marca = Marca.objects.filter(id=setting.marca_id).first()
+            lead = Lead.objects.filter(id=chat.lead_id).first()
             
             # Validar que la marca existe
             if not marca:
                 return {'success': False, 'reason': 'marca_not_found'}
 
             payload = {
-                'codigo': chat.codigo_solicitud,
+                'codigo': lead.codigo,
                 'marca': marca.nombre,
                 'es_efectivo': True
             }
