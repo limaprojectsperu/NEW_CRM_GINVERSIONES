@@ -222,4 +222,4 @@ class Lead(models.Model):
         verbose_name_plural = 'Leads'
 
     def __str__(self):
-        return f"{self.nombre_lead} ({self.celular})"
+        return f"id: {self.id} - {self.nombre_lead} ({self.celular})"
