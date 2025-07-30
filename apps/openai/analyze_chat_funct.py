@@ -8,7 +8,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 class ChatAnalyzerService:
-    """Servicio para analizar chats y extraer información específica usando OpenAI"""
+    """Servicio simplificado para analizar chats y extraer monto, tipo de propiedad y si tiene propiedad"""
     
     def __init__(self, api_key: str = None):
         """
@@ -24,10 +24,10 @@ class ChatAnalyzerService:
         chat_history: Union[List[Dict[str, str]], str],
         model: str = "gpt-3.5-turbo",
         temperature: float = 0.1,
-        max_tokens: int = 250
+        max_tokens: int = 150
     ) -> Dict[str, Any]:
         """
-        Analizar historial de chat y extraer información específica
+        Analizar historial de chat y extraer información específica: monto, tipo de propiedad y si tiene propiedad
         
         Args:
             chat_history: Lista de mensajes o string con el historial
@@ -110,28 +110,19 @@ class ChatAnalyzerService:
         {chat_text}
 
         INFORMACIÓN A EXTRAER:
-        1. DNI: Número peruano de 8 dígitos exactos
-        2. Nombres: Solo nombres de pila
-        3. Apellidos: Solo apellidos
-        4. Celular: Número peruano que inicia con 9 y tiene 9 dígitos
-        5. Monto: Solo si se menciona monto en soles o dólares (convertir dólares a soles usando tasa 3.65)
-        6. Correo: Email válido
-        7. Garantía: Si menciona garantía hipotecaria de un bien, responder: 'CASA', 'DEPARTAMENTO', 'LOCAL COMERCIAL' o 'TERRENOS INDUSTRIALES'
-        8. Tiene_propiedad: true/false si tiene propiedad en registros públicos
+        1. Monto: Solo si se menciona monto en soles o dólares (convertir dólares a soles usando tasa 3.75)
+        2. Tipo_propiedad: Si menciona una propiedad como garantía, responder: 'CASA', 'DEPARTAMENTO', 'LOCAL COMERCIAL' o 'TERRENOS INDUSTRIALES'
+        3. Tiene_propiedad: true/false si explícitamente menciona que tiene propiedad en registros públicos
 
         RESPONDE ÚNICAMENTE EN ESTE FORMATO JSON:
         {{
-            "dni": "12345678",
-            "nombres": "Juan Carlos",
-            "apellidos": "Pérez García",
-            "celular": "987654321",
             "monto": 15000,
-            "correo": "juan@email.com",
-            "garantia": "CASA",
+            "tipo_propiedad": "CASA",
             "tiene_propiedad": true
         }}
 
-        Si no encuentras un dato, usa null. Para números usa valores numéricos, no strings.
+        Si no encuentras un dato, usa null. Para el monto usa valores numéricos, no strings.
+        Para tiene_propiedad usa true/false solo si está claramente mencionado, sino null.
         """
     
     def _parse_response(self, response: str) -> Dict[str, Any]:
@@ -152,36 +143,10 @@ class ChatAnalyzerService:
     def _validate_and_clean_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Validar y limpiar los datos extraídos"""
         return {
-            'dni': self._validate_dni(data.get('dni')),
-            'nombres': self._validate_string(data.get('nombres')),
-            'apellidos': self._validate_string(data.get('apellidos')),
-            'celular': self._validate_celular(data.get('celular')),
             'monto': self._validate_monto(data.get('monto')),
-            'correo': self._validate_email(data.get('correo')),
-            'garantia': self._validate_garantia(data.get('garantia')),
-            'tiene_propiedad': data.get('tiene_propiedad') if isinstance(data.get('tiene_propiedad'), bool) else None
+            'tipo_propiedad': data.get('tipo_propiedad'),
+            'tiene_propiedad': self._validate_tiene_propiedad(data.get('tiene_propiedad'))
         }
-    
-    def _validate_dni(self, dni: Any) -> Optional[str]:
-        """Validar DNI peruano de 8 dígitos"""
-        if not dni:
-            return None
-        dni_str = re.sub(r'\D', '', str(dni))
-        return dni_str if len(dni_str) == 8 else None
-    
-    def _validate_string(self, string: Any) -> Optional[str]:
-        """Validar string no vacío"""
-        if not string or not isinstance(string, str):
-            return None
-        cleaned = string.strip()
-        return cleaned if len(cleaned) > 0 else None
-    
-    def _validate_celular(self, celular: Any) -> Optional[str]:
-        """Validar celular peruano (9 dígitos, inicia con 9)"""
-        if not celular:
-            return None
-        celular_str = re.sub(r'\D', '', str(celular))
-        return celular_str if len(celular_str) == 9 and celular_str.startswith('9') else None
     
     def _validate_monto(self, monto: Any) -> Optional[float]:
         """Validar monto numérico positivo"""
@@ -193,34 +158,27 @@ class ChatAnalyzerService:
         except (ValueError, TypeError):
             return None
     
-    def _validate_email(self, email: Any) -> Optional[str]:
-        """Validar formato de email"""
-        if not email:
-            return None
-        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
-        return email if re.match(email_regex, str(email)) else None
+    def _validate_tipo_propiedad(self, tipo_propiedad: Any) -> Optional[str]:
+        """Validar tipo de propiedad"""
+        valid_tipos = ['CASA', 'DEPARTAMENTO', 'LOCAL COMERCIAL', 'TERRENOS INDUSTRIALES']
+        return tipo_propiedad if tipo_propiedad in valid_tipos else None
     
-    def _validate_garantia(self, garantia: Any) -> Optional[str]:
-        """Validar tipo de garantía"""
-        valid_garantias = ['CASA', 'DEPARTAMENTO', 'LOCAL COMERCIAL', 'TERRENOS INDUSTRIALES']
-        return garantia if garantia in valid_garantias else None
+    def _validate_tiene_propiedad(self, tiene_propiedad: Any) -> Optional[bool]:
+        """Validar si tiene propiedad (solo true/false explícitos)"""
+        if isinstance(tiene_propiedad, bool):
+            return tiene_propiedad
+        return None
     
     def _get_empty_result(self) -> Dict[str, None]:
         """Retornar estructura vacía"""
         return {
-            'dni': None,
-            'nombres': None,
-            'apellidos': None,
-            'celular': None,
             'monto': None,
-            'correo': None,
-            'garantia': None,
+            'tipo_propiedad': None,
             'tiene_propiedad': None
         }
 
-
 # Función de conveniencia para uso directo
-def analyze_chat_conversation(
+def analyze_chat_simple(
     chat_history: Union[List[Dict[str, str]], str],
     api_key: str = None,
     **kwargs
@@ -238,7 +196,6 @@ def analyze_chat_conversation(
     """
     analyzer = ChatAnalyzerService(api_key=api_key)
     return analyzer.analyze_chat(chat_history, **kwargs)
-
 
 # Decorador para manejar errores comunes en vistas
 def handle_chat_analysis_errors(func):

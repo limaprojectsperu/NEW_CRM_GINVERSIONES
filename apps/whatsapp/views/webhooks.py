@@ -21,7 +21,7 @@ from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import save_file_to_wasabi
 from apps.users.models import Users
-from apps.openai.analyze_chat_funct import analyze_chat_conversation
+from apps.openai.analyze_chat_funct import analyze_chat_simple
 from apps.redes_sociales.models import Marca
 
 chatbot = ChatbotService()
@@ -172,8 +172,8 @@ class WhatsappWebhookAPIView(APIView):
             'mensaje': lastMessage
             })
         
-        #result = self.analyze_chat_new_lead(setting, chat)
-        #print(result)
+        result = self.analyze_chat_new_lead(setting, chat)
+        print(result)
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
         """
@@ -425,106 +425,102 @@ class WhatsappWebhookAPIView(APIView):
             ).exclude(
                 Telefono=setting.Telefono
             ).order_by('IDChatMensaje')
-            
+        
             chat_history = [
-                {"content": msg.Mensaje, "role": "user"} 
+                {"content": msg.Mensaje, "role": "user"}
                 for msg in msgs if msg.Mensaje
             ]
-            
+        
             # 2. Verificar cantidad mínima de mensajes
             if len(chat_history) < setting.envio_lead_n_chat:
                 return {'success': False, 'reason': 'insufficient_messages'}
-            
+        
             # 3. Analizar chat con IA
-            #print(f"Analizando chat {chat.IDChat} con {len(chat_history)} mensajes")
-            result = analyze_chat_conversation(chat_history)
-            
+            result = analyze_chat_simple(chat_history)
+        
             if not result['success']:
                 return {'success': False, 'reason': 'analysis_failed', 'error': result.get('error')}
-            
-            # 4. Validar datos mínimos requeridos
+        
+            # 4. Validar datos mínimos requeridos - LÓGICA CORREGIDA
             result_ia = result['data']
-            if not all([result_ia.get('tiene_propiedad'), result_ia.get('monto'), result_ia.get('garantia')]):
-                return {'success': False, 'reason': 'missing_required_fields'}
             
-            # 5. Obtener tipo de producto (inline)
-            try:
-                response = requests.get(f"{settings.API_GI}tipos_producto", timeout=10)
-                response.raise_for_status()
-                product_types = response.json().get('data', [])
-                
-                marca = Marca.objects.filter(id=setting.marca_id).first()
-                if not marca:
-                    return {'success': False, 'reason': 'marca_not_found'}
-                
-                product_type = next(
-                    (item for item in product_types if item.get('producto', '').lower() == marca.nombre.lower()), 
-                    None
-                )
-                if not product_type:
-                    return {'success': False, 'reason': 'product_type_not_found'}
-                    
-            except requests.RequestException as e:
-                return {'success': False, 'reason': 'product_type_api_error', 'error': {str(e)}}
+            # Verificar que todos los campos requeridos estén presentes Y que el monto sea >= 20000
+            required_fields_present = all([
+                result_ia.get('monto') is not None,
+                result_ia.get('tipo_propiedad') is not None,
+                result_ia.get('tiene_propiedad') is not None
+            ])
             
-            # 6. Obtener origen (inline)
-            try:
-                params = {'marca_id': product_type['id'], 'plataforma_id': 1}
-                response = requests.get(f"{settings.API_GI}origenes", params=params, timeout=10)
-                response.raise_for_status()
-                
-                origen_id = response.json().get('data', {}).get('id')
-                if not origen_id:
-                    return {'success': False, 'reason': 'origen_not_found'}
-                    
-            except requests.RequestException as e:
-                return {'success': False, 'reason': 'origen_api_error', 'error': {str(e)}}
+            monto_sufficient = result_ia.get('monto', 0) >= 20000
             
-            # 7. Preparar y enviar payload (inline)
-            # Limpiar teléfono
-            telefono_limpio = chat.Telefono
-            if telefono_limpio and telefono_limpio.startswith('51') and len(telefono_limpio) > 9:
-                telefono_limpio = telefono_limpio[2:]
+            if not required_fields_present or not monto_sufficient:
+                return {
+                    'success': False, 
+                    'reason': 'missing_required_fields',
+                    'details': {
+                        'required_fields_present': required_fields_present,
+                        'monto_sufficient': monto_sufficient,
+                        'monto': result_ia.get('monto')
+                    }
+                }
+        
+            # 5. Preparar y enviar payload
+            marca = Marca.objects.filter(id=setting.marca_id).first()
             
+            # Validar que la marca existe
+            if not marca:
+                return {'success': False, 'reason': 'marca_not_found'}
+
             payload = {
-                'nombres': result_ia.get('nombres') or chat.Nombre or '',
-                'apellidos': result_ia.get('apellidos') or '',
-                'numero': result_ia.get('dni') or '',
-                'celular': telefono_limpio or '',
-                'monto': result_ia.get('monto') or 0,
-                'correo': result_ia.get('correo') or '',
-                'has_property': result_ia.get('tiene_propiedad', False),
-                'tipo_garantia': result_ia.get('garantia') or '',
-                'tipo_producto': product_type['id'],
-                'origen': origen_id
+                'codigo': chat.codigo_solicitud,
+                'marca': marca.nombre,
+                'es_efectivo': True
             }
-            #print(payload)
-            # 8. Enviar a API externa
+            
+            # 6. Enviar a API externa
             try:
-                headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+                headers = {
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json'
+                }
                 response = requests.post(
-                    f"{settings.API_GI}solicitantes",
+                    f"{settings.API_GI}chat-reasignacion-usuario",
                     json=payload,
                     headers=headers,
                     timeout=30
                 )
                 response.raise_for_status()
-                
+            
                 response_data = response.json()
-                lead_id = response_data.get('id') or response_data.get('data', {}).get('id')
-                
+                data = response_data.get('data')
+            
                 return {
                     'success': True,
-                    'lead_id': lead_id,
-                    'extracted_data': result_ia
+                    'data': data,
+                    'extracted_data': result_ia,
+                    'payload_sent': payload
                 }
-                
+            
             except requests.exceptions.Timeout:
                 return {'success': False, 'reason': 'api_timeout'}
+            except requests.exceptions.HTTPError as e:
+                return {
+                    'success': False, 
+                    'reason': 'api_http_error', 
+                    'error': str(e),
+                    'status_code': response.status_code if 'response' in locals() else None
+                }
             except requests.RequestException as e:
                 return {'success': False, 'reason': 'api_send_failed', 'error': str(e)}
+            except ValueError as e:  # Para errores de JSON parsing
+                return {'success': False, 'reason': 'api_response_invalid', 'error': str(e)}
         
         except Exception as e:
+            # Log del error para debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error inesperado en analyze_chat_new_lead: {str(e)}", exc_info=True)
+            
             return {'success': False, 'reason': 'unexpected_error', 'error': str(e)}
         
 

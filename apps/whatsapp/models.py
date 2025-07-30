@@ -56,6 +56,7 @@ class Whatsapp(models.Model):
     IDEL                 = models.IntegerField(null=True, blank=True, db_column='IDEL', help_text='ID lead estado')
     IDSubEstadoLead      = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead')
     nuevos_mensajes      = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
+    codigo_solicitud     = models.CharField(max_length=50, db_column='codigo_solicitud', null=True, blank=True)
     fecha_agenda         = models.DateTimeField(null=True, blank=True, db_column='fecha_agenda')
     user_id_agenda       = models.IntegerField(null=True, blank=True, db_column='user_id_agenda')
     fecha_proxima_plantilla = models.DateTimeField(null=True, blank=True, db_column='fecha_proxima_plantilla')

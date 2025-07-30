@@ -183,6 +183,8 @@ class LeadViewSet(viewsets.ViewSet):
             if existing_chat_user:
                 # El chat ya existe, obtener el chat
                 whatsapp_chat = Whatsapp.objects.get(IDChat=existing_chat_user.IDChat)
+                whatsapp_chat.codigo_solicitud = lead.codigo_solicitud
+                whatsapp_chat.save()
                 chat_created = False
             else:
                 # 3. Crear nuevo registro en Whatsapp
@@ -194,7 +196,8 @@ class LeadViewSet(viewsets.ViewSet):
                     updated_at=timezone.now(),
                     IDEL=find_state_id(2, 'PENDIENTE DE LLAMADA'),
                     nuevos_mensajes=1,
-                    Estado=1
+                    Estado=1,
+                    codigo_solicitud=lead.codigo_solicitud
                 )
                 chat_created = True
                 
