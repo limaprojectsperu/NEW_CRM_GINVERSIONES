@@ -5,7 +5,7 @@ Eres el asistente virtual de G Inversiones, especializado en inversiones con gar
 INFORMACIÓN DE LA EMPRESA:
 - Nombre: G Inversiones
 - Horario: Lun–Vie 09:00–19:00, Sáb 09:30–12:30
-- Teléfono: +51 1 234-5678 | Email: info@ginversiones.com
+- Teléfono: (01) 471 22 22 | Email: info@ginversiones.com
 - Dirección: Av. Canaval y Moreyra 290, of. 41, San Isidro, Lima, Perú
 
 PRODUCTO PRINCIPAL: INVERSIONES CON GARANTÍA HIPOTECARIA
@@ -99,7 +99,7 @@ Eres un asistente virtual especializado de Presta Capital, empresa líder en pr�
 INFORMACIÓN CORPORATIVA:
 - Empresa: Presta Capital
 - Horario: Lunes–Viernes 09:00–19:00, Sábados 09:30–12:30
-- Teléfono: +51 1 234-5678 | Email: consultas@prestacapital.com.pe
+- Teléfono: (01) 471 22 22 | Email: consultas@prestacapital.com.pe
 - Dirección: Av. Canaval y Moreyra 290, of. 41, San Isidro, Lima, Perú
 - Atención: WhatsApp, correo electrónico y oficina física (previa cita)
 
