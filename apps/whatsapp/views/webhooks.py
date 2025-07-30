@@ -376,13 +376,16 @@ class WhatsappWebhookAPIView(APIView):
             if template:
                 self.send_message(setting, chat, template.mensaje)
 
+        user_response = True
         chat_user = WhatsapChatUser.objects.filter(IDChat=chat.IDChat).first()
         if(chat_user):
             user = Users.objects.filter(co_usuario=chat_user.user_id).first()
             if user and user.openai:
                 self.open_ai_response(setting, chat)
+            else:
+                user_response = False
 
-        elif setting.openai and chat.openai:
+        if not user_response and setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
 
     def handle_button_response(self, setting, chat, button_id, message_content):
