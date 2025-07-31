@@ -10,6 +10,7 @@ from .models import (
     WhatsappConfiguracionUser,
     WhatsappProfileAccepts,
     WhatsapChatUser,
+    WhatsapChatUserHistorial,
     Lead,
 )
 
@@ -24,4 +25,5 @@ admin.site.register(WhatsappPlantillaResumen)
 admin.site.register(WhatsappConfiguracionUser)
 admin.site.register(WhatsappProfileAccepts)
 admin.site.register(WhatsapChatUser)
+admin.site.register(WhatsapChatUserHistorial)
 admin.site.register(Lead)

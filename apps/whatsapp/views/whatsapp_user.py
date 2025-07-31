@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from ..models import WhatsappConfiguracionUser, WhatsapChatUser
-from ..serializers import WhatsappConfiguracionUserSerializer, WhatsapChatUserSerializer
+from ..models import WhatsappConfiguracionUser, WhatsapChatUser, WhatsapChatUserHistorial
+from ..serializers import WhatsappConfiguracionUserSerializer, WhatsapChatUserSerializer, WhatsapChatUserHistorialSerializer
 
 class WhatsappConfiguracionUserViewSet(viewsets.ViewSet):
     
@@ -50,6 +50,12 @@ class WhatsapChatUserViewSet(viewsets.ViewSet):
             IDChat=pk,
             defaults={'user_id': user_id}
         )
+
+        WhatsapChatUserHistorial.objects.create(
+            whatsapp_chat_user_id=obj,
+            IDChat=pk,
+            user_id=user_id
+        )
         
         if created:
             message = 'Usuario asignado al chat con éxito.'
@@ -68,9 +74,15 @@ class WhatsapChatUserViewSet(viewsets.ViewSet):
             items = request.data.get('chatsSelect', [])
             
             for item in items:
-                WhatsapChatUser.objects.create(
-                    user_id=pk,
-                    IDChat=item
+                chat_user = WhatsapChatUser.objects.create(
+                    IDChat=item,
+                    user_id=pk
+                )
+
+                WhatsapChatUserHistorial.objects.create(
+                    whatsapp_chat_user_id=chat_user,
+                    IDChat=item,
+                    user_id=pk
                 )
             
             return Response({'message': 'Cambio guardado con éxito.'})
@@ -80,3 +92,16 @@ class WhatsapChatUserViewSet(viewsets.ViewSet):
                 {'error': 'Error al actualizar configuraciones'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class WhatsapChatUserHistorialViewSet(viewsets.ViewSet):
+    
+    def show(self, request, pk=None):
+        """GET /api/whatsapp-chat-user-historial/{whatsapp_chat_user_id}/ - Obtener configuraciones por usuario"""
+        chat_user = WhatsapChatUser.objects.filter(IDChat=pk).first()
+        
+        if chat_user:
+            qs = WhatsapChatUserHistorial.objects.filter(whatsapp_chat_user_id=chat_user.id).order_by('-id')
+            serializer = WhatsapChatUserHistorialSerializer(qs, many=True)
+            return Response({'data': serializer.data})
+        
+        return Response({'data': []})

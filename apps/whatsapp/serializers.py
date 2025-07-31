@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser, WhatsappProfileAccepts, Lead, WhatsapChatUser 
+from .models import Whatsapp, WhatsappMensajes, WhatsappConfiguracion, ChatNiveles, Niveles, WhatsappMetaPlantillas, WhatsappPlantillaResumen, WhatsappConfiguracionUser, WhatsappProfileAccepts, Lead, WhatsapChatUser, WhatsapChatUserHistorial 
 from apps.redes_sociales.models import Marca, EstadoLead, SubEstadoLead
 from apps.users.models import Users 
 
@@ -139,6 +139,20 @@ class WhatsapChatUserSerializer(serializers.ModelSerializer):
         model = WhatsapChatUser
         fields = '__all__'
 
+class WhatsapChatUserHistorialSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WhatsapChatUserHistorial
+        fields = '__all__'
+
+    def get_user_name(self, obj):
+        try:
+            user = Users.objects.get(co_usuario=obj.user_id)
+            return user.name
+        except Users.DoesNotExist:
+            return None
+        
 class WhatsappProfileAcceptsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsappProfileAccepts

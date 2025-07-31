@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from django.conf import settings
-from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser, Lead
+from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsapChatUser, WhatsapChatUserHistorial, Lead
 from apps.redes_sociales.models import MessengerPlantilla
 from ...utils.pusher_client import pusher_client
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
@@ -519,9 +519,16 @@ class WhatsappWebhookAPIView(APIView):
                         }
 
                     # Actualizar WhatsapChatUser
-                    WhatsapChatUser.objects.filter(IDChat=chat.IDChat).update(
-                        user_id=serializer.data.get('usuario_asignado')
-                    )
+                    chat_user = WhatsapChatUser.objects.filter(IDChat=chat.IDChat).first()
+                    if chat_user: 
+                        chat_user.user_id=serializer.data.get('usuario_asignado')
+                        chat_user.save()
+
+                        WhatsapChatUserHistorial.objects.create(
+                            whatsapp_chat_user_id=chat_user,
+                            IDChat=chat.IDChat,
+                            user_id=serializer.data.get('usuario_asignado')
+                        )
                     
                     # Push notification
                     try:

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
 from datetime import datetime
-from ..models import Lead, WhatsappConfiguracion, Whatsapp, WhatsapChatUser, WhatsappMensajes
+from ..models import Lead, WhatsappConfiguracion, Whatsapp, WhatsapChatUser, WhatsapChatUserHistorial, WhatsappMensajes
 from ..serializers import LeadSerializer
 from apps.redes_sociales.models import Marca
 from apps.utils.datetime_func import get_date_time, get_naive_peru_time_delta
@@ -209,7 +209,13 @@ class LeadViewSet(viewsets.ViewSet):
                 chat_created = True
                 
                 # 4. Crear registro en WhatsapChatUser
-                WhatsapChatUser.objects.create(
+                chat_user = WhatsapChatUser.objects.create(
+                    IDChat=whatsapp_chat.IDChat,
+                    user_id=lead.usuario_asignado
+                )
+
+                WhatsapChatUserHistorial.objects.create(
+                    whatsapp_chat_user_id=chat_user,
                     IDChat=whatsapp_chat.IDChat,
                     user_id=lead.usuario_asignado
                 )

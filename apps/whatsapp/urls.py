@@ -12,7 +12,7 @@ from .views.levels import NivelViewSet
 from .views.whatsapp_level import ChatLevelShow, ChatLevelUpdate
 from .views.whatsapp_bulk import WhatsappBulkSendAPIView
 from .views.summary_template import WhatsappMetaPlantillasViewSet, WhatsappPlantillaResumenViewSet
-from .views.whatsapp_user import WhatsappConfiguracionUserViewSet, WhatsapChatUserViewSet
+from .views.whatsapp_user import WhatsappConfiguracionUserViewSet, WhatsapChatUserViewSet, WhatsapChatUserHistorialViewSet
 from .views.whatsapp_profile_accepts import WhatsappProfileAcceptsViewSet
 from .views.lead import LeadViewSet
 from .views.setting import WhatsappConfiguracionViewSet
@@ -87,12 +87,17 @@ urlpatterns = [
         'put': 'update'
     }), name='whatsapp-configuracion-user-detail'),
 
-     # APIs para WhatsappChatnUser
+    # APIs para WhatsappChatnUser
     path('whatsapp-chat-user/<int:pk>', WhatsapChatUserViewSet.as_view({
         'get': 'show',
         'put': 'update'
     })),
     path('whatsapp-chat-user/reassign/<int:pk>', WhatsapChatUserViewSet.as_view({'put': 'updateReassignUser'})),
+
+    # APIs para WhatsappChatnUser
+    path('whatsapp-chat-user-historial/<int:pk>', WhatsapChatUserHistorialViewSet.as_view({
+        'get': 'show',
+    })),
 
     # API para WhatsappProfileAccepts
     path('whatsapp-profile-accepts/<int:pk>', WhatsappProfileAcceptsViewSet.as_view({

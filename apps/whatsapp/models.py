@@ -109,6 +109,21 @@ class WhatsapChatUser(models.Model):
 
     def __str__(self):
         return f"Chat {self.IDChat} - Usuario {self.user_id}"
+
+class WhatsapChatUserHistorial(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id')
+    whatsapp_chat_user_id = models.ForeignKey(WhatsapChatUser, on_delete=models.PROTECT, db_column='whatsapp_chat_user_id', related_name='chat_users')
+    IDChat  = models.IntegerField(db_column='IDChat')
+    user_id = models.IntegerField(db_column='user_id')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'whatsapp_chat_users_historial'
+        verbose_name = 'WhatsApp Chat Usuario Historial'
+        verbose_name_plural = 'WhatsApp Chats Usuarios Historial'
+
+    def __str__(self):
+        return f"id_chat_user: {self.whatsapp_chat_user_id} - Chat {self.IDChat} - Usuario {self.user_id}"
     
 class WhatsappProfileAccepts(models.Model):
     id = models.AutoField(primary_key=True)
