@@ -30,10 +30,13 @@ class ChatbotService:
         # 3. Llamamos a la API
         try:
             resp = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o", #gpt-3.5-turbo 
                 messages=messages,
-                max_tokens=300,
-                temperature=0.7
+                max_tokens=250,
+                temperature=0.5,  # Reduce creatividad, mejora consistencia
+                top_p=0.8,       # Enfoque en respuestas más predecibles
+                frequency_penalty=0.2,  # Evita repeticiones
+                presence_penalty=0.1    # Fomenta concisión
             )
             return resp.choices[0].message.content.strip()
         except Exception:

@@ -21,7 +21,7 @@ from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import save_file_to_wasabi
 from apps.users.models import Users
-from apps.openai.analyze_chat_funct import analyze_chat_simple
+from apps.openai.analyze_chat_funct import analyze_chat_improved
 from apps.redes_sociales.models import Marca
 from ..serializers import LeadSerializer
 from django.shortcuts import get_object_or_404
@@ -175,6 +175,7 @@ class WhatsappWebhookAPIView(APIView):
             })
         
         self.analyze_chat_new_lead(setting, chat)
+
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
         """
@@ -439,33 +440,38 @@ class WhatsappWebhookAPIView(APIView):
                 return {'success': False, 'reason': 'insufficient_messages'}
         
             # 3. Analizar chat con IA
-            result = analyze_chat_simple(chat_history)
+            result = analyze_chat_improved(chat_history)
         
             if not result['success']:
                 return {'success': False, 'reason': 'analysis_failed', 'error': result.get('error')}
         
-            # 4. Validar datos mínimos requeridos - LÓGICA CORREGIDA
+            # 4. LÓGICA CORREGIDA - Validar que AL MENOS UN criterio sea True
             result_ia = result['data']
             
-            # Verificar que todos los campos requeridos estén presentes Y que el monto sea >= 20000
-            required_fields_present = all([
-                result_ia.get('monto') is not None,
-                result_ia.get('tipo_propiedad') is not None,
-                result_ia.get('tiene_propiedad') is not None
-            ])
+            # Evaluar cada criterio explícitamente (True, False, o None)
+            tiene_propiedad = result_ia.get('tiene_propiedad') == True
+            propiedad_registrada = result_ia.get('propiedad_en_registros_publicos') == True
+            prestamo_suficiente = result_ia.get('prestamo_mayor_20000') == True
             
-            monto_sufficient = result_ia.get('monto', 0) >= 20000
-            
-            if not required_fields_present or not monto_sufficient:
+            # Verificar que AL MENOS UNO sea True para continuar el proceso
+            if not (tiene_propiedad or propiedad_registrada or prestamo_suficiente):
                 return {
                     'success': False, 
                     'reason': 'missing_required_fields',
-                    'details': {
-                        'required_fields_present': required_fields_present,
-                        'monto_sufficient': monto_sufficient,
-                        'monto': result_ia.get('monto')
+                    'message': 'No se cumplió ningún criterio mínimo (propiedad, registros públicos, o monto >20k)',
+                    'criterios_evaluados': {
+                        'tiene_propiedad': result_ia.get('tiene_propiedad'),
+                        'propiedad_en_registros_publicos': result_ia.get('propiedad_en_registros_publicos'),
+                        'prestamo_mayor_20000': result_ia.get('prestamo_mayor_20000')
                     }
                 }
+            
+            # Determinar si es efectivo
+            es_efectivo = False
+            
+            # OPCIÓN A: Es efectivo si cumple los 3 criterios
+            if tiene_propiedad and propiedad_registrada and prestamo_suficiente:
+                es_efectivo = True
         
             # 5. Preparar y enviar payload
             marca = Marca.objects.filter(id=setting.marca_id).first()
@@ -480,7 +486,7 @@ class WhatsappWebhookAPIView(APIView):
             payload = {
                 'codigo': lead.codigo,
                 'marca': marca.nombre.upper(),
-                'es_efectivo': True
+                'es_efectivo': es_efectivo
             }
             
             # 6. Enviar a API externa
