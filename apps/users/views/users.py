@@ -15,6 +15,12 @@ class UsersViewSet(viewsets.ViewSet):
         serializer = UsersSerializer(users, many=True)
         return Response({'data': serializer.data})
     
+    def listByProfile(self, request, pk=None):
+        """GET /api/users/ - Listar usuarios activos"""
+        users = Users.objects.filter(co_perfil=pk, in_estado=1).order_by('co_usuario')
+        serializer = UsersSerializer(users, many=True)
+        return Response({'data': serializer.data})
+    
     def show(self, request, pk=None):
         """GET /api/users/ - usuario"""
         user = Users.objects.filter(co_usuario=pk).first()

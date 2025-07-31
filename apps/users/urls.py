@@ -19,6 +19,9 @@ urlpatterns = [
     path('user/update-openai/<int:pk>', UsersViewSet.as_view({
         'post': 'updateOpenai',
     })),
+    path('users/perfil/<int:pk>', UsersViewSet.as_view({
+        'get': 'listByProfile',
+    })),
     
     # URLs para UserTokens
     path('user-tokens', UserTokensViewSet.as_view({
