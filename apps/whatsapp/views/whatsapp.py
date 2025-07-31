@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from apps.utils.datetime_func import get_naive_peru_time
+from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
 from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsapChatUser
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappAgendaSerializer, WhatsappMensajesSerializer
 from apps.utils.find_states import find_state_id
@@ -117,7 +117,7 @@ class WhatsappStore(APIView):
             Telefono    = request.data['Telefono'],
             Estado      = 1,
             updated_at  = new_date,
-            FechaUltimaPlantilla = new_date
+            FechaUltimaPlantilla = get_naive_peru_time_delta(days=-2),
         )
         return Response({'message': 'Nuevo Chat registrado correctamente.', 'data': WhatsappSerializer(w).data})
 
