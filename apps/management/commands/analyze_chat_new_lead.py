@@ -57,7 +57,7 @@ class Command(BaseCommand):
                         lead_reasignado=False,
                         Estado=1  # Solo chats activos
                     ).values_list('IDChat', flat=True),
-                    origen=3,  # Mensaje de IA
+                    origen=1,  # Mensaje de IA
                     created_at__lte=tiempo_minimo_antiguedad,
                     created_at__gt=tiempo_maximo_antiguedad
                 ).order_by('IDChat', '-created_at')
