@@ -39,10 +39,10 @@ class ChatbotService:
                 model="gpt-4o", #gpt-3.5-turbo 
                 messages=messages,
                 max_tokens=250,
-                temperature=0.5,  # Reduce creatividad, mejora consistencia
-                top_p=0.8,       # Enfoque en respuestas más predecibles
-                frequency_penalty=0.2,  # Evita repeticiones
-                presence_penalty=0.1    # Fomenta concisión
+                temperature=0.3,  # Reduce creatividad, mejora consistencia
+                top_p=0.7,       # Enfoque en respuestas más predecibles
+                frequency_penalty=0.5,  # Evita repeticiones
+                presence_penalty=0.3    # Fomenta concisión
             )
             return resp.choices[0].message.content.strip()
         except Exception:

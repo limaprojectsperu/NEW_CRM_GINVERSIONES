@@ -397,7 +397,7 @@ class WhatsappWebhookAPIView(APIView):
         ultimos_mensajes.reverse()
         
         messages = [{"role": "assistant" if entry.Telefono == setting.Telefono else "user", "content": entry.Mensaje} for entry in ultimos_mensajes]
-        
+        print(messages)
         res = chatbot.get_response(setting.marca_id, messages)
         self.send_message(setting, chat, res, 3)
 
