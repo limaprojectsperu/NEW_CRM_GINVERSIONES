@@ -14,7 +14,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from ..views.whatsapp_app import WhatsappSendAPIView
 from apps.utils.FirebaseServiceV1 import FirebaseServiceV1
-from apps.utils.tokens_phone import get_user_tokens_by_whatsapp
+from apps.utils.tokens_phone import get_tokens_by_user
 from apps.users.models import Users
 from django.shortcuts import get_object_or_404
 
@@ -201,7 +201,7 @@ class LeadViewSet(viewsets.ViewSet):
                     Telefono='51'+lead.celular,
                     FechaUltimaPlantilla=get_naive_peru_time_delta(days=-2),
                     updated_at=timezone.now(),
-                    IDEL=find_state_id(2, 'PENDIENTE DE LLAMADA'),
+                    IDEL=find_state_id(2, whatsapp_config.IDRedSocial, 'PENDIENTE DE LLAMADA'),
                     nuevos_mensajes=1,
                     Estado=1,
                     lead_id=lead.id
@@ -238,7 +238,7 @@ class LeadViewSet(viewsets.ViewSet):
             
             # Push notification
             firebase_service = FirebaseServiceV1()
-            tokens = get_user_tokens_by_whatsapp(whatsapp_config.IDRedSocial, whatsapp_chat.IDChat)
+            tokens = get_tokens_by_user(lead.usuario_asignado)
             if len(tokens) > 0:
                 firebase_service.send_to_multiple_devices(
                     tokens=tokens,

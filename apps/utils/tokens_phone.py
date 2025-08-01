@@ -61,6 +61,13 @@ def get_users_tokens(miembros):
         
     return tokens
 
+def get_tokens_by_user(user_id):
+    user_tokens = UserTokens.objects.filter(user_id=user_id)
+    # Extraer solo los tokens del resultado
+    tokens = [tokens.token for tokens in user_tokens]
+        
+    return tokens
+
 def delete_token(token):
     
     UserTokens.objects.filter(token=token).delete()

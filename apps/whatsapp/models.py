@@ -22,8 +22,8 @@ class WhatsappConfiguracion(models.Model):
     responder_automaticamente = models.BooleanField(default=False) 
     responder_automaticamente_minutos = models.IntegerField(default=5)
     enviar_quien_escribio = models.BooleanField(default=False) 
-    contactar_leads = models.BooleanField(default=False) 
-    envio_lead_n_chat = models.IntegerField(default=3)
+    contactar_leads = models.BooleanField(default=False, help_text='Numero para recibir lead') 
+    envio_lead_n_chat = models.IntegerField(default=3, help_text='Analizar chat después 3 mensajes recibidos')
 
     class Meta:
         db_table = 'whatsapp_configuracion'
@@ -57,6 +57,7 @@ class Whatsapp(models.Model):
     IDSubEstadoLead      = models.IntegerField(null=True, blank=True, db_column='IDSubEstadoLead')
     nuevos_mensajes      = models.IntegerField(default=0, blank=True, db_column='nuevos_mensajes')
     lead_id              = models.IntegerField(null=True, blank=True, db_column='lead_id')
+    lead_reasignado      = models.BooleanField(default=False) 
     fecha_agenda         = models.DateTimeField(null=True, blank=True, db_column='fecha_agenda')
     user_id_agenda       = models.IntegerField(null=True, blank=True, db_column='user_id_agenda')
     fecha_proxima_plantilla = models.DateTimeField(null=True, blank=True, db_column='fecha_proxima_plantilla')
@@ -66,7 +67,7 @@ class Whatsapp(models.Model):
     Estado               = models.IntegerField(default=1, null=True, blank=True, db_column='Estado')
     openai               = models.BooleanField(default=True) 
     respuesta_generada_openai = models.BooleanField(default=False)
-
+    
     class Meta:
         db_table = 'whatsapp'
         unique_together = (('IDChat', 'IDRedSocial'),)
@@ -116,7 +117,8 @@ class WhatsapChatUserHistorial(models.Model):
     IDChat  = models.IntegerField(db_column='IDChat')
     user_id = models.IntegerField(db_column='user_id')
     created_at  = models.DateTimeField(auto_now_add=True)
-    
+    lead_reasignado_visto = models.BooleanField(default=False)
+
     class Meta:
         db_table = 'whatsapp_chat_users_historial'
         verbose_name = 'WhatsApp Chat Usuario Historial'

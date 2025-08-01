@@ -38,7 +38,6 @@ class Command(BaseCommand):
         except Exception as e:
             error_msg = f'Error al eliminar registros: {str(e)}'
             self.stdout.write(self.style.ERROR(error_msg))
-            print(f"ERROR: {error_msg}")
             return f"Error: {error_msg}"
 
         # Importar datos

@@ -58,8 +58,6 @@ class MessengerMessages(APIView):
         chat = Messenger.objects.filter(IDChat=id).first()
         if chat:
             chat.nuevos_mensajes = 0
-            if chat.IDEL == find_state_id(1, 'No leído'):
-                chat.IDEL = find_state_id(1, 'Leído')
             chat.save()
             
         return Response({'data': serializer.data})

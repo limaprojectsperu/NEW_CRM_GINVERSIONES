@@ -87,8 +87,6 @@ class ChatInternoMessages(APIView):
             chat = ChatInternoMiembro.objects.filter(chat_interno_id=id, user_id=user_id).first()
             if chat:
                 chat.nuevos_mensajes = 0
-                if chat.IDEL == find_state_id(3, 'No leído'):
-                    chat.IDEL = find_state_id(3, 'Leído')
                 chat.save()
         
         return Response({'data': serializer.data})
@@ -202,7 +200,7 @@ class ChatInternoCreate(APIView):
                 chat_interno_id=chat,
                 user_id=miembro_data.get('user_id'),
                 rol=miembro_data.get('rol', 'Miembro'),
-                IDEL=find_state_id(3, 'No leído'),
+                IDEL=find_state_id(3, 0, 'No leído'),
             )
         
         serializer = ChatInternoSerializer(chat)

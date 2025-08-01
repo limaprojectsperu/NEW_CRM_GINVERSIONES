@@ -181,7 +181,6 @@ class WebhookVerifyReceive(APIView):
             chat = Messenger.objects.create(
                 IDRedSocial=IDRedSocial,
                 IDSender=sender_id,
-                IDEL=find_state_id(1, 'No leído'),
                 Nombre=user_name,
                 nuevos_mensajes=1,
                 Estado=1

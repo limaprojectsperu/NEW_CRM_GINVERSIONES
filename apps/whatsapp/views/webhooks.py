@@ -21,10 +21,6 @@ from rest_framework.parsers import JSONParser
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import save_file_to_wasabi
 from apps.users.models import Users
-from apps.openai.analyze_chat_funct import analyze_chat_improved
-from apps.redes_sociales.models import Marca
-from ..serializers import LeadSerializer
-from django.shortcuts import get_object_or_404
 
 chatbot = ChatbotService()
 
@@ -173,8 +169,6 @@ class WhatsappWebhookAPIView(APIView):
             'IDChat': chat.IDChat, 
             'mensaje': lastMessage
             })
-        
-        #self.analyze_chat_new_lead(setting, chat)
 
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
@@ -240,7 +234,6 @@ class WhatsappWebhookAPIView(APIView):
             file_response = requests.get(file_url, headers=headers, timeout=60)
             if file_response.status_code != 200:
                 print(f"Error descargando archivo: {file_response.status_code}")
-                print(f"Respuesta: {file_response.text}")
                 return None
 
             timestamp = int(timezone.now().timestamp())
@@ -302,7 +295,7 @@ class WhatsappWebhookAPIView(APIView):
             Telefono=phone,
             defaults={
                 'Nombre': name,
-                'IDEL': find_state_id(2, 'PENDIENTE DE LLAMADA'),
+                'IDEL': find_state_id(2, setting.IDRedSocial, 'PENDIENTE DE LLAMADA'),
                 'Estado': 1
             }
         )
@@ -389,18 +382,6 @@ class WhatsappWebhookAPIView(APIView):
         if respom_setting_ia and setting.openai and chat.openai:
             self.open_ai_response(setting, chat)
 
-    def handle_button_response(self, setting, chat, button_id, message_content):
-        """
-        Maneja respuestas específicas de botones
-        """
-        if button_id == "Sí, deseo agendar":
-            response_message = "¡Perfecto! Te ayudaré con el proceso de agendamiento. ¿Cuándo te gustaría programar tu cita?"
-            self.send_message(setting, chat, response_message)
-            
-        elif button_id == "No deseo":
-            response_message = "Entiendo. Si cambias de opinión, estaré aquí para ayudarte."
-            self.send_message(setting, chat, response_message)
-
     def open_ai_response(self, setting, chat):
         """
         Genera respuesta usando OpenAI
@@ -416,196 +397,7 @@ class WhatsappWebhookAPIView(APIView):
         self.send_message(setting, chat, res, 3)
 
         chat.respuesta_generada_openai = True
-        chat.save()
-    
-    def analyze_chat_new_lead(self, setting, chat):
-        """
-        Analiza el chat de un nuevo lead y envía los datos extraídos a la API externa
-        """
-        try:
-            # 1. Obtener y formatear mensajes del chat
-            msgs = WhatsappMensajes.objects.filter(
-                IDChat=chat.IDChat
-            ).exclude(
-                Telefono=setting.Telefono
-            ).order_by('IDChatMensaje')
-        
-            chat_history = [
-                {"content": msg.Mensaje, "role": "user"}
-                for msg in msgs if msg.Mensaje
-            ]
-        
-            # 2. Verificar cantidad mínima de mensajes
-            if len(chat_history) < setting.envio_lead_n_chat:
-                return {'success': False, 'reason': 'insufficient_messages'}
-        
-            # 3. Analizar chat con IA
-            result = analyze_chat_improved(chat_history)
-        
-            if not result['success']:
-                return {'success': False, 'reason': 'analysis_failed', 'error': result.get('error')}
-        
-            # 4. LÓGICA CORREGIDA - Validar que AL MENOS UN criterio sea True
-            result_ia = result['data']
-            
-            # Evaluar cada criterio explícitamente (True, False, o None)
-            tiene_propiedad = result_ia.get('tiene_propiedad') == True
-            propiedad_registrada = result_ia.get('propiedad_en_registros_publicos') == True
-            prestamo_suficiente = result_ia.get('prestamo_mayor_20000') == True
-            
-            # Verificar que AL MENOS UNO sea True para continuar el proceso
-            if not (tiene_propiedad or propiedad_registrada or prestamo_suficiente):
-                return {
-                    'success': False, 
-                    'reason': 'missing_required_fields',
-                    'message': 'No se cumplió ningún criterio mínimo (propiedad, registros públicos, o monto >20k)',
-                    'criterios_evaluados': {
-                        'tiene_propiedad': result_ia.get('tiene_propiedad'),
-                        'propiedad_en_registros_publicos': result_ia.get('propiedad_en_registros_publicos'),
-                        'prestamo_mayor_20000': result_ia.get('prestamo_mayor_20000')
-                    }
-                }
-            
-            # Determinar si es efectivo
-            es_efectivo = False
-            
-            # OPCIÓN A: Es efectivo si cumple los 3 criterios
-            if tiene_propiedad and propiedad_registrada and prestamo_suficiente:
-                es_efectivo = True
-        
-            # 5. Preparar y enviar payload
-            marca = Marca.objects.filter(id=setting.marca_id).first()
-            lead = Lead.objects.filter(id=chat.lead_id).first()
-            
-            # Validar que la marca existe
-            if not marca:
-                return {'success': False, 'reason': 'marca_not_found'}
-            if not lead:
-                return {'success': False, 'reason': 'lead_not_found'}
-
-            payload = {
-                'codigo': lead.codigo,
-                'marca': marca.nombre.upper(),
-                'es_efectivo': es_efectivo
-            }
-            
-            # 6. Enviar a API externa
-            response = None  # Inicializar variable response
-            try:
-                headers = {
-                    'Content-Type': 'application/json', 
-                    'Accept': 'application/json'
-                }
-                response = requests.post(
-                    f"{settings.API_GI}chat-reasignacion-usuario",
-                    json=payload,
-                    headers=headers,
-                    timeout=30
-                )
-                response.raise_for_status()
-            
-                response_data = response.json()
-                data = response_data.get('data')
-
-                # Verificar que data no sea None
-                if not data:
-                    return {'success': False, 'reason': 'api_response_empty_data'}
-
-                # Actualizar el lead
-                try:
-                    qs = get_object_or_404(Lead, id=lead.id)
-                    serializer = LeadSerializer(qs, data=data, partial=True)
-                    if serializer.is_valid():
-                        serializer.save()
-                    else:
-                        return {
-                            'success': False, 
-                            'reason': 'serializer_validation_failed',
-                            'errors': serializer.errors
-                        }
-
-                    # Actualizar WhatsapChatUser
-                    chat_user = WhatsapChatUser.objects.filter(IDChat=chat.IDChat).first()
-                    if chat_user: 
-                        chat_user.user_id=serializer.data.get('usuario_asignado')
-                        chat_user.save()
-
-                        WhatsapChatUserHistorial.objects.create(
-                            whatsapp_chat_user_id=chat_user,
-                            IDChat=chat.IDChat,
-                            user_id=serializer.data.get('usuario_asignado')
-                        )
-                    
-                    # Push notification
-                    try:
-                        firebase_service = FirebaseServiceV1()
-                        tokens = get_user_tokens_by_whatsapp(setting.IDRedSocial, chat.IDChat)
-                        if len(tokens) > 0:
-                            firebase_service.send_to_multiple_devices(
-                                tokens=tokens,
-                                title="Nuevo lead recibido en WhatsApp",
-                                body=self.simple_message(serializer.data),
-                                data={'type': 'router', 'route_name': 'WhatsappPage'}
-                            )
-                    except Exception as firebase_error:
-                        # Log el error pero no fallar el proceso
-                        print(f"Error enviando notificación Firebase: {firebase_error}")
-                    
-                    return {
-                        'success': True,
-                        'data': data,
-                        'extracted_data': result_ia,
-                        'payload_sent': payload
-                    }
-                    
-                except Exception as serializer_error:
-                    return {
-                        'success': False, 
-                        'reason': 'lead_update_failed',
-                        'error': str(serializer_error)
-                    }
-            
-            except requests.exceptions.Timeout:
-                return {'success': False, 'reason': 'api_timeout'}
-            except requests.exceptions.HTTPError as e:
-                return {
-                    'success': False, 
-                    'reason': 'api_http_error', 
-                    'error': str(e),
-                    'status_code': response.status_code if response else None
-                }
-            except requests.RequestException as e:
-                return {'success': False, 'reason': 'api_send_failed', 'error': str(e)}
-            except ValueError as e:  # Para errores de JSON parsing
-                return {'success': False, 'reason': 'api_response_invalid', 'error': str(e)}
-                
-        except Exception as e:
-            # Capturar cualquier error no manejado
-            return {
-                'success': False, 
-                'reason': 'unexpected_error',
-                'error': str(e)
-            }
-        
-    
-    def simple_message(self, lead):
-        """
-        Genera mensaje simple para notificaciones de nuevo lead
-        """
-        try:
-            marca = getattr(lead, 'marca', 'N/A')
-            nombre = getattr(lead, 'nombre_lead', 'N/A')
-            monto = getattr(lead, 'monto_solicitado', 0)
-            celular = getattr(lead, 'celular', 'N/A')
-            ocurrencia = getattr(lead, 'ocurrencia', 'N/A')
-            
-            return (
-                f"Nueva Lead de {marca}: Nombre: {nombre}; "
-                f"Monto Solicitado: S/. {monto}; "
-                f"Celular: {celular}; Ocurrencia: {ocurrencia}."
-            )
-        except Exception as e:
-            return "Nueva Lead recibida"
+        chat.save()   
 
     def send_message(self, setting, chat, mensaje, origen=1):
         """
