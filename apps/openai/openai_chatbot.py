@@ -1,20 +1,26 @@
 import openai
 from django.conf import settings
-from .system_prompt.system_prompt_messenger import (
-    system_prompt_g_inversiones,
-    system_prompt_presta_capital
+from .system_prompt.g_inversiones import (
+    system_prompt_g_inversiones
+)
+from .system_prompt.presta_capital import (
+    system_prompt_presta_capital,
+    system_prompt_presta_capital_without_derivation
 )
 
 class ChatbotService:
     def __init__(self):
         openai.api_key = settings.OPENAI_API_KEY
 
-    def get_response(self, brand, conversation_history = []):
+    def get_response(self, brand, conversation_history = [], option = 1):
         # 1. Seleccionamos el system_prompt según la marca
         if brand == 4:
             prompt = system_prompt_g_inversiones()
         elif brand == 1:
-            prompt = system_prompt_presta_capital()
+            if option == 1:
+                prompt = system_prompt_presta_capital()
+            else:
+                prompt = system_prompt_presta_capital_without_derivation()
         else:
             # En caso de que llegue una marca desconocida, puede usarse un prompt genérico
             prompt = (

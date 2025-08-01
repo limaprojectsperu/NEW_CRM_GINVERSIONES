@@ -251,8 +251,8 @@ class Command(BaseCommand):
                 } 
                 for entry in ultimos_mensajes
             ]
-            
-            res = chatbot.get_response(setting.marca_id, messages)
+
+            res = chatbot.get_response(setting.marca_id, messages, 2 if setting.marca_id == 1 else 1)
             self.send_message_whatsapp(setting, chat, res, 3)
 
             chat.respuesta_generada_openai = True

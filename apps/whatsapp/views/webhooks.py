@@ -18,7 +18,7 @@ from django.test import RequestFactory
 from rest_framework.request import Request
 from ..views.whatsapp_app import WhatsappSendAPIView
 from rest_framework.parsers import JSONParser
-from apps.utils.find_states import find_state_id
+from apps.utils.find_states import find_state_id, find_substate_id
 from apps.users.views.wasabi import save_file_to_wasabi
 from apps.users.models import Users
 
@@ -290,21 +290,26 @@ class WhatsappWebhookAPIView(APIView):
         """
         Obtiene o crea un chat
         """
-        chat, created = Whatsapp.objects.update_or_create(
+        chat = Whatsapp.objects.filter(
             IDRedSocial=setting.IDRedSocial,
-            Telefono=phone,
-            defaults={
-                'Nombre': name,
-                'IDEL': find_state_id(2, setting.IDRedSocial, 'PENDIENTE DE LLAMADA'),
-                'Estado': 1
-            }
-        )
+            Telefono=phone
+        ).first()
         
-        if created:
-            chat.nuevos_mensajes = 1
+        if chat:
+            chat.Estado = 1
+            chat.nuevos_mensajes = chat.nuevos_mensajes + 1
+            chat.save()
         else:
             chat.nuevos_mensajes = chat.nuevos_mensajes + 1
-        chat.save()
+            chat = Whatsapp.objects.create(
+                IDRedSocial=setting.IDRedSocial,
+                Telefono=phone,
+                Nombre=name,
+                nuevos_mensajes=1,
+                IDEL=find_state_id(2, setting.IDRedSocial, 'PENDIENTE DE LLAMADA'),
+                IDSubEstadoLead=find_substate_id(2, setting.IDRedSocial, 'LEAD ASIGNADO, NO CONTACTADO'),
+                Estado=1
+            )
 
         return chat
 

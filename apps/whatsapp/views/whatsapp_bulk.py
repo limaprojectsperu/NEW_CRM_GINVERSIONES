@@ -10,7 +10,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from ..models import WhatsappConfiguracion, Whatsapp, WhatsappMensajes, WhatsappMetaPlantillas, WhatsappPlantillaResumen
 from apps.utils.datetime_func import get_date_time, get_naive_peru_time
-from apps.utils.find_states import find_state_id
+from apps.utils.find_states import find_state_id, find_substate_id
 from ..serializers import WhatsappPlantillaResumenSerializer
 
 class WhatsappBulkSendAPIView(APIView):
@@ -414,6 +414,7 @@ class WhatsappBulkSendAPIView(APIView):
                 FechaUltimaPlantilla=current_time,
                 updated_at=current_time,
                 IDEL=find_state_id(2, setting.IDRedSocial, 'PENDIENTE DE LLAMADA'),
+                IDSubEstadoLead=find_substate_id(2, setting.IDRedSocial, 'LEAD ASIGNADO, NO CONTACTADO'),
                 Estado=1
             )
         

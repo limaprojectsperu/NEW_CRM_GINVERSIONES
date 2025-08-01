@@ -8,7 +8,7 @@ from ..models import Lead, WhatsappConfiguracion, Whatsapp, WhatsapChatUser, Wha
 from ..serializers import LeadSerializer
 from apps.redes_sociales.models import Marca
 from apps.utils.datetime_func import get_date_time, get_naive_peru_time_delta
-from apps.utils.find_states import find_state_id
+from apps.utils.find_states import find_state_id, find_substate_id
 from django.test import RequestFactory
 from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
@@ -202,6 +202,7 @@ class LeadViewSet(viewsets.ViewSet):
                     FechaUltimaPlantilla=get_naive_peru_time_delta(days=-2),
                     updated_at=timezone.now(),
                     IDEL=find_state_id(2, whatsapp_config.IDRedSocial, 'PENDIENTE DE LLAMADA'),
+                    IDSubEstadoLead=find_substate_id(2, whatsapp_config.IDRedSocial, 'LEAD ASIGNADO, NO CONTACTADO'),
                     nuevos_mensajes=1,
                     Estado=1,
                     lead_id=lead.id
