@@ -97,6 +97,10 @@ urlpatterns = [
     # APIs para WhatsappChatnUser
     path('whatsapp-chat-user-historial/<int:pk>', WhatsapChatUserHistorialViewSet.as_view({
         'get': 'show',
+        'post': 'updateLead'
+    })),
+    path('whatsapp-chat-user-historial-by-user/<int:pk>/<int:IDRedSocial>', WhatsapChatUserHistorialViewSet.as_view({
+        'get': 'list',
     })),
 
     # API para WhatsappProfileAccepts

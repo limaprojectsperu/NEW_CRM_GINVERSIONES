@@ -152,6 +152,25 @@ class WhatsapChatUserHistorialSerializer(serializers.ModelSerializer):
             return user.name
         except Users.DoesNotExist:
             return None
+
+class WhatsapChatUserHistorialGetChatSerializer(serializers.ModelSerializer):
+    chat = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WhatsapChatUserHistorial
+        fields = '__all__'
+        
+    def get_chat(self, obj):
+        try:
+            chat = Whatsapp.objects.get(IDChat=obj.IDChat)
+            return {
+                'IDChat': chat.IDChat,
+                'Nombre': chat.Nombre,
+                'Telefono': chat.Telefono,
+                'Avatar': chat.Avatar,
+            }
+        except Whatsapp.DoesNotExist:
+            return None
         
 class WhatsappProfileAcceptsSerializer(serializers.ModelSerializer):
     class Meta:

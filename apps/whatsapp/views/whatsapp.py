@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from apps.utils.datetime_func import get_naive_peru_time, get_naive_peru_time_delta
-from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsapChatUser
+from ..models import Whatsapp, WhatsappMensajes, ChatNiveles, WhatsapChatUser, WhatsapChatUserHistorial
 from ..serializers import WhatsappSerializer, WhatsappSingleSerializer, WhatsappAgendaSerializer, WhatsappMensajesSerializer
 from apps.utils.find_states import find_state_id
 from apps.users.views.wasabi import upload_to_wasabi
@@ -180,7 +180,16 @@ class WhatsappUpdate(APIView):
 class WhatsappUpdateDate(APIView):
     """ POST /api/whatsapp/update-date/{id}/ """
     def post(self, request, id):
-        Whatsapp.objects.filter(IDChat=id).update(updated_at=get_naive_peru_time())
+        chat = Whatsapp.objects.filter(IDChat=id).first()
+        chat.updated_at = get_naive_peru_time()
+        if request.data.get('respuesta_generada_openai'):
+            chat.respuesta_generada_openai = False
+        chat.save()
+
+        chat_historial_id = request.data.get('chat_historial_id')
+        if chat_historial_id:
+            WhatsapChatUserHistorial.objects.filter(id=chat_historial_id).update(lead_reasignado_visto=True)
+
         return Response({'message': 'ok'})
 
 class WhatsappUpdateOpenai(APIView):

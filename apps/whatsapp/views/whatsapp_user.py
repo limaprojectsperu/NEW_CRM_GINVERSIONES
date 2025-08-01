@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from ..models import WhatsappConfiguracionUser, WhatsapChatUser, WhatsapChatUserHistorial
-from ..serializers import WhatsappConfiguracionUserSerializer, WhatsapChatUserSerializer, WhatsapChatUserHistorialSerializer
+from ..models import Whatsapp, WhatsappConfiguracionUser, WhatsapChatUser, WhatsapChatUserHistorial
+from ..serializers import WhatsappConfiguracionUserSerializer, WhatsapChatUserSerializer, WhatsapChatUserHistorialSerializer, WhatsapChatUserHistorialGetChatSerializer
 
 class WhatsappConfiguracionUserViewSet(viewsets.ViewSet):
     
@@ -94,6 +94,16 @@ class WhatsapChatUserViewSet(viewsets.ViewSet):
             )
 
 class WhatsapChatUserHistorialViewSet(viewsets.ViewSet):
+    def list(self, request, pk=None, IDRedSocial=None):
+        """GET /api/whatsapp-chat-user-historial/{whatsapp_chat_user_id}/ - Obtener configuraciones por usuario"""
+        qs = WhatsapChatUserHistorial.objects.filter(
+            user_id=pk, 
+            lead_reasignado_visto=False,
+            IDChat__in=Whatsapp.objects.filter(IDRedSocial=IDRedSocial).values_list('IDChat', flat=True)
+        ).order_by('-id')
+        serializer = WhatsapChatUserHistorialGetChatSerializer(qs, many=True)
+
+        return Response({'data': serializer.data})
     
     def show(self, request, pk=None):
         """GET /api/whatsapp-chat-user-historial/{whatsapp_chat_user_id}/ - Obtener configuraciones por usuario"""
@@ -105,3 +115,8 @@ class WhatsapChatUserHistorialViewSet(viewsets.ViewSet):
             return Response({'data': serializer.data})
         
         return Response({'data': []})
+
+    def updateLead(self, request, pk=None):
+        """ POST /api/whatsapp/generated-response/{id}/ """
+        WhatsapChatUserHistorial.objects.filter(id=pk).update(lead_reasignado_visto=request.data.get('lead_reasignado_visto'))
+        return Response({'message': 'ok'})
