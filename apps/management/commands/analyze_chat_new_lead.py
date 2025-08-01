@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 tiempo_ahora = timezone.now()
                 minutos_respuesta = 8
                 tiempo_minimo_antiguedad = tiempo_ahora - timedelta(minutes=minutos_respuesta)
-                tiempo_maximo_antiguedad = tiempo_ahora - timedelta(minutes=190)
+                tiempo_maximo_antiguedad = tiempo_ahora - timedelta(minutes=60)
 
                 # 4. Buscar mensajes candidatos de los chats asignados al usuario
                 mensajes_candidatos = WhatsappMensajes.objects.filter(
@@ -57,7 +57,7 @@ class Command(BaseCommand):
                         lead_reasignado=False,
                         Estado=1  # Solo chats activos
                     ).values_list('IDChat', flat=True),
-                    origen=1,  # Mensaje de IA
+                    origen=3,  # Mensaje de IA
                     created_at__lte=tiempo_minimo_antiguedad,
                     created_at__gt=tiempo_maximo_antiguedad
                 ).order_by('IDChat', '-created_at')
