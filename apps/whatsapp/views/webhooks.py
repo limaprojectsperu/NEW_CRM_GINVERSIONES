@@ -174,7 +174,7 @@ class WhatsappWebhookAPIView(APIView):
             'mensaje': lastMessage
             })
         
-        self.analyze_chat_new_lead(setting, chat)
+        #self.analyze_chat_new_lead(setting, chat)
 
 
     def _process_media_message(self, message_obj, media_type, setting, phone):
