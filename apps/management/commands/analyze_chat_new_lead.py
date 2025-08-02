@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 tiempo_ahora = timezone.now()
                 minutos_respuesta = 8
                 tiempo_minimo_antiguedad = tiempo_ahora - timedelta(minutes=minutos_respuesta)
-                tiempo_maximo_antiguedad = tiempo_ahora - timedelta(minutes=660)
+                tiempo_maximo_antiguedad = tiempo_ahora - timedelta(minutes=60)
 
                 # 4. Buscar mensajes candidatos de los chats asignados al usuario
                 mensajes_candidatos = WhatsappMensajes.objects.filter(
