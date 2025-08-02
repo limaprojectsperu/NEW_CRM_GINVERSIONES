@@ -232,7 +232,9 @@ class Lead(models.Model):
     departamento = models.CharField(max_length=100, db_column='departamento', null=True, blank=True)
     provincia = models.CharField(max_length=100, db_column='provincia', null=True, blank=True)
     distrito = models.CharField(max_length=100, db_column='distrito', null=True, blank=True)
-
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+    
     class Meta:
         db_table = 'leads' 
         verbose_name = 'Lead'
